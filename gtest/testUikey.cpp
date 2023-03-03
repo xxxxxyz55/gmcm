@@ -4,9 +4,11 @@
 
 using namespace std;
 
+uiKeyArray * gUikeyArray = NULL;
+
 void import_key_route(int * exitFlag)
 {
-    uiKeyArray *pUikeyArray = uiKeyArray::get_uikey_array();
+    uiKeyArray *pUikeyArray = gUikeyArray;
     unsigned char key[16];
     unsigned int keyLen = 16;
     unsigned char keyGet[16];
@@ -49,7 +51,7 @@ void import_key_route(int * exitFlag)
 
 int main(int argc, char const *argv[])
 {
-    uiKeyArray::get_uikey_array();
+    gUikeyArray = new uiKeyArray(0);
     unsigned int threadNum = 8;
     std::thread * threads[32];
     int threadExit = 0;

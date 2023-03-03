@@ -98,11 +98,11 @@ void PrintHexbuff(const char *name, void *pBuff, int nLen)
 int main(int argc, char const *argv[])
 {
 
-    protoBase clientBase;
+    pstBuffer clientBase;
     reqKekEncrypt clientReq; 
     respKekEncrypt clientResp;
 
-    protoBase serverBase; //缓冲区 线程唯一
+    pstBuffer serverBase; //缓冲区 线程唯一
     reqKekEncrypt serverReq;
     respKekEncrypt serverResp;
 

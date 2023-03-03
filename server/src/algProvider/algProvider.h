@@ -37,8 +37,7 @@ public:
     int load_all_sdf_func();
     void set_dso(dso *pSoLib) { pLib = pSoLib; }
 
-
-    int OpenDevice();
+    int OpenDevice(session_meth *pSessionMeth = NULL, key_mgmt_meth *pKeyMeth = NULL);
     int GenerateKeyPair_ECC(ECCrefPublicKey *pucPublicKey, ECCrefPrivateKey *pucPrivateKey);
     int GenerateRandom(SGD_UINT32 uiLength, SGD_UCHAR *pucRandom);
     int ImportKey(SGD_UCHAR *pucKey, SGD_UINT32 uiKeyLength, unsigned char *handleStr, unsigned short *length);

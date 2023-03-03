@@ -1,10 +1,10 @@
-#include "../apiEngine/tcpProcessFunc.h"
 #include <sys/prctl.h>
 #include "../gmcmErr.h"
-#include "../gmcmLog.h"
-#include "tcpHandle.h"
+#include "../tool/gmcmLog.h"
+#include "hsmHandle.h"
+#include "../apiEngine/hsmApi.h"
 
-void gmcmTcpHandle::initialize()
+void gmcmHsmHandle::initialize()
 {
     int bindCpu = this->getHandleIndex() % sysconf(_SC_NPROCESSORS_CONF);
     cpu_set_t cpuset;
@@ -17,9 +17,10 @@ void gmcmTcpHandle::initialize()
         gmcmLog::LogError() << "thread " << this->getHandleIndex() << " bind cpu fail." << endl;
     }
 
-    setSendFunc(std::bind(&gmcmTcpHandle::send_callback, this, std::placeholders::_1, std::placeholders::_2));
+    setSendFunc(std::bind(&gmcmHsmHandle::send_callback, this, std::placeholders::_1, std::placeholders::_2));
 }
-void gmcmTcpHandle::handle(const shared_ptr<TC_EpollServer::RecvContext> &data)
+
+void gmcmHsmHandle::handle(const shared_ptr<TC_EpollServer::RecvContext> &data)
 {
     try
     {
@@ -32,12 +33,24 @@ void gmcmTcpHandle::handle(const shared_ptr<TC_EpollServer::RecvContext> &data)
         }
         else
         {
-            iRet = processTcpTask(tcpSeverPkt::getReq(), tcpSeverPkt::getReqLen(), tcpSeverPkt::getResp());
+            hsmApiFuncPtr funcPtr = globalClass<hsmApiEngine>::getGlobalClass()->getApiFunc(getCmd());
+            if (funcPtr == NULL)
+            {
+                iRet = GMCM_ERR_CMD_UNDEFINE;
+            }
+            else
+            {
+                iRet = funcPtr(tcpSeverPkt::getReq(), tcpSeverPkt::getReqLen(), tcpSeverPkt::getResp());
+            }
+        }
+
+        if(iRet)
+        {
+            cout << "cmd [" << getCmd() << "]." << endl;
+            utilTool::printHex(tcpSeverPkt::getReq(), tcpSeverPkt::getReqLen(), "req");
         }
         this->tcpSeverPkt::respErrPkt(iRet);
-        // pSendCtx->buffer()->replaceBufferEx(NULL, 0, true);
         this->tcpSeverPkt::sendResp();
-        // pSendCtx->buffer()->replaceBufferEx(NULL, 0, false);
     }
     catch (exception &ex)
     {
@@ -46,41 +59,15 @@ void gmcmTcpHandle::handle(const shared_ptr<TC_EpollServer::RecvContext> &data)
     }
 }
 
-unsigned int gmcmTcpHandle::processTcpTask(unsigned char *req, unsigned int reqLen, protoBase *resp)
+void gmcmHsmHandle::handleClose(const shared_ptr<TC_EpollServer::RecvContext> &data)
 {
-    tcpDealFunc *pFunc = NULL;
-    try
-    {
-        // printf("cmd = %s\n", cmd);
-        pFunc = &tcpApiEngine::getMap()->at(getCmd());
-        // printf("pFunc = %p\n", pFunc);
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-        return GMCM_ERR_CMD_UNDEFINE;
-    }
-    
-    if (pFunc == NULL || pFunc->func == NULL)
-    {
-        return GMCM_ERR_CMD_UNDEFINE;
-    }
-    else
-    {
-        return pFunc->func(req, reqLen, resp);
-    }
-}
-
-void gmcmTcpHandle::handleClose(const shared_ptr<TC_EpollServer::RecvContext> &data)
-{
-    printf("TaskHandle::handleClose : %s : %d close type %d\n", data->ip().c_str(), data->port(), data->closeType());
+    gmcmLog::LogDebug() << "TaskHandle::handleClose : " << data->ip() << " : " << data->port() << " close type " << data->closeType() << endl;
 }
 
 #define MAX_PACKAGE_LEN     65537
 
 TC_NetWorkBuffer::PACKET_TYPE parseGmcmTcp(TC_NetWorkBuffer &in, vector<char> &out)
 {
-    //FFFFFFFF + 2 len + len data + FFFFFFFF
     try
     {
         if (in.empty())
@@ -88,37 +75,38 @@ TC_NetWorkBuffer::PACKET_TYPE parseGmcmTcp(TC_NetWorkBuffer &in, vector<char> &o
             return TC_NetWorkBuffer::PACKET_LESS;
         }
 
-        if (in.getBuffer()->length() <= 6)
+        if (in.getBuffer()->length() < 10)
         {
             return TC_NetWorkBuffer::PACKET_LESS;
         }
-        /*
-        FFFFFFFF
-        0A00
-        30303031
-        0400
-        60000000
-        FFFFFFFF
-        */
 
         unsigned char *p = (unsigned char *)in.getBuffer()->buffer();
         if (*(unsigned int *)p != 0xFFFFFFFF)
         {
+            printf("packet err header.");
             return TC_NetWorkBuffer::PACKET_ERR;
         }
+        // utilTool::printHex(p, in.getBufferLength(), "req");
 
-        unsigned short needLen = *(unsigned short *)(p + 4);
+        unsigned short needLen = *(unsigned short *)(p + 8);
         if (needLen > MAX_PACKAGE_LEN)
         {
+            printf("packet err total len.");
             return TC_NetWorkBuffer::PACKET_ERR;
         }
 
-        if (needLen > in.getBufferLength() - 10)
+        if (in.getBufferLength() < 14)
         {
             return TC_NetWorkBuffer::PACKET_LESS;
         }
-        else if (needLen < in.getBufferLength() - 10)
+
+        if (needLen > in.getBufferLength() - 14)
         {
+            return TC_NetWorkBuffer::PACKET_LESS;
+        }
+        else if (needLen < in.getBufferLength() - 14)
+        {
+            printf("packet err recv len.");
             return TC_NetWorkBuffer::PACKET_ERR;
         }
 
@@ -128,6 +116,7 @@ TC_NetWorkBuffer::PACKET_TYPE parseGmcmTcp(TC_NetWorkBuffer &in, vector<char> &o
     }
     catch (exception &ex)
     {
+        printf("packet err exception.");
         return TC_NetWorkBuffer::PACKET_ERR;
     }
 

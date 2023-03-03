@@ -78,9 +78,8 @@ add_executable(gmcmserver ${server_src_file})
 set_target_properties(gmcmserver PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(gmcmserver PUBLIC rpc/include)
 target_include_directories(gmcmserver PUBLIC external_include)
-target_include_directories(gmcmserver PUBLIC external_include/openssl)
 target_include_directories(gmcmserver PUBLIC tools)
-target_link_libraries(gmcmserver ${gm_crypto} ${gm_ssl} gmcmrpc gmcmalg ${libhiredis})
+target_link_libraries(gmcmserver gmcmrpc gmcmalg ${libhiredis})
 target_link_libraries(gmcmserver cjson m dl)
 set_target_properties(gmcmserver PROPERTIES COMPILE_FLAGS "-Wno-maybe-uninitialized")
 
@@ -109,15 +108,29 @@ target_include_directories(testEventWait PUBLIC tools)
 target_link_libraries(testEventWait pthread)
 
 add_executable(testObjInitCopy gtest/testObjInitCopy.cpp)
+target_include_directories(testObjInitCopy PUBLIC tools)
 
 add_executable(testUikey gtest/testUikey.cpp)
-target_include_directories(gmcmalg PUBLIC alg/include)
+target_include_directories(testUikey PUBLIC alg/include)
 target_link_libraries(testUikey gmcmalg)
+
+add_executable(testPst gtest/testPst.cpp)
+target_include_directories(testPst PUBLIC tools)
+
+add_executable(testPjst gtest/testPjst.cpp)
+target_include_directories(testPjst PUBLIC tools)
+target_include_directories(testPjst PUBLIC external_include)
+target_link_libraries(testPjst cjson)
 
 add_executable(testSdf gtest/testSdf.cpp)
 target_include_directories(testSdf PUBLIC alg/include)
 target_include_directories(testSdf PUBLIC tools)
 target_link_libraries(testSdf gmcmalg)
+
+add_executable(testCert gtest/testCert.cpp)
+target_include_directories(testCert PUBLIC alg/include)
+target_include_directories(testCert PUBLIC tools)
+target_link_libraries(testCert gmcmalg)
 
 file(GLOB sdk_src_file CONFIGURE_DEPENDS
     "client/sdk/*.cpp"
@@ -182,6 +195,7 @@ set_target_properties(gmcmsdk PROPERTIES COMPILE_FLAGS " -DTARS_SSL=0")
 add_executable(gmcmSdkClient client/simpleClient/simpleClient.cpp)
 target_link_libraries(gmcmSdkClient gmcmsdk)
 target_include_directories(gmcmSdkClient PUBLIC tools)
+
 
 set(INSTALL_SERVER_PATH "/gmcm/server/")
 

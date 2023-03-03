@@ -1,6 +1,6 @@
 #include "redisConn.h"
 #include "../gmcmErr.h"
-#include "../gmcmLog.h"
+#include "../tool/gmcmLog.h"
 
 redisConn *redisConn::pRedisConnPool = NULL;
 
@@ -21,6 +21,10 @@ redisConn *redisConn::getRedisConnPool()
                 redisFree(conn);
                 gmcmLog::LogError() << "redis conn pool enqueue fail." << endl;
                 return NULL;
+            }
+            else
+            {
+                gmcmLog::LogDebug() << "redis conn init success." << endl;
             }
         }
     }
@@ -90,13 +94,17 @@ redisReply *redisConn::execCmd(redisContext *pConn, int argc, const char **argv,
             gmcmLog::LogError() << "redis exec cmd fail." << endl;
         }
     }
-    else
+
+    if (reply && reply->type == REDIS_REPLY_ERROR)
     {
+        freeReplyObject(reply);
+        reply = NULL;
     }
+
     return reply;
 }
 
-int redisConn::setData(char *key, unsigned char *data, unsigned int dataLen)
+int redisConn::setData(const char *key, unsigned char *data, unsigned int dataLen, unsigned int expireTime)
 {
     redisContext *pConn = pRedisConnPool->getConn();
     if(pConn == NULL)
@@ -104,17 +112,31 @@ int redisConn::setData(char *key, unsigned char *data, unsigned int dataLen)
         return GMCM_FAIL;
     }
 
-    const char *sArgv[3];
-    size_t iArgvLen[3];
+    const char *sArgv[4];
+    size_t iArgvLen[4];
     int iRet = 0;
-    static char sSet[] = "SET";
-    sArgv[0] = sSet;
-    iArgvLen[0] = 3;
+    int argc;
+    if(expireTime)
+    {
+        sArgv[0] = "SETEX";
+        iArgvLen[0] = 5;
+        char expire[16] = {0};
+        iArgvLen[3] = snprintf(expire, sizeof(expire), "%d", expireTime);
+        sArgv[3] = expire;
+        argc = 4;
+    }
+    else
+    {
+        sArgv[0] = "SET";
+        iArgvLen[0] = 3;
+        argc = 3;
+    }
+
     sArgv[1] = key;
     iArgvLen[1] = strlen(key);
     sArgv[2] = (char *)data;
     iArgvLen[2] = dataLen;
-    redisReply *reply = pRedisConnPool->execCmd(pConn, 3, sArgv, iArgvLen);
+    redisReply *reply = pRedisConnPool->execCmd(pConn, argc, sArgv, iArgvLen);
     if (reply == NULL)
     {
         iRet = GMCM_ERR_REDIS_EXEC;
@@ -130,7 +152,7 @@ int redisConn::setData(char *key, unsigned char *data, unsigned int dataLen)
 }
 
 
-int redisConn::getData(char *key, unsigned char *data, unsigned int &dataLen)
+int redisConn::getData(const char *key, unsigned char *data, unsigned int &dataLen)
 {
     int32_t iRet = 0;
     redisContext *pConn = pRedisConnPool->getConn();
@@ -168,13 +190,14 @@ int redisConn::getData(char *key, unsigned char *data, unsigned int &dataLen)
             dataLen = reply->len;
             memcpy(data, reply->str, reply->len);
         }
+        freeReplyObject(reply);
     }
 
     pRedisConnPool->realseConn(pConn);
     return iRet;
 }
 
-int redisConn::delData(char *key)
+int redisConn::delData(const char *key)
 {
     redisContext *pConn = pRedisConnPool->getConn();
     int32_t iRet = GMCM_OK;
@@ -200,6 +223,222 @@ int redisConn::delData(char *key)
         }
         else
         {
+            freeReplyObject(reply);
+        }
+
+        pRedisConnPool->realseConn(pConn);
+        return iRet;
+    }
+}
+
+int redisConn::hashSetData(const char *hashName, const char *key, unsigned char *data, unsigned int dataLen)
+{
+    redisContext *pConn = pRedisConnPool->getConn();
+    int32_t iRet = GMCM_OK;
+    if (pConn == NULL)
+    {
+        return GMCM_FAIL;
+    }
+    else
+    {
+        const char *sArgv[4];
+        size_t iArgvLen[4];
+        sArgv[0] = "HSET";
+        iArgvLen[0] = 4;
+        sArgv[1] = hashName;
+        iArgvLen[1] = strlen(hashName);
+        sArgv[2] = key;
+        iArgvLen[2] = strlen(key);
+        sArgv[3] = (char *)data;
+        iArgvLen[3] = dataLen;
+
+        redisReply *reply = pRedisConnPool->execCmd(pConn, 4, sArgv, iArgvLen);
+        if (reply == NULL)
+        {
+            gmcmLog::LogError() << "redis get cmd fail, key=" << key << endl;
+            iRet = GMCM_ERR_REDIS_EXEC;
+        }
+        else
+        {
+            freeReplyObject(reply);
+        }
+
+        pRedisConnPool->realseConn(pConn);
+        return iRet;
+    }
+}
+
+int redisConn::hashGetData(const char *hashName, const char *key, unsigned char *data, unsigned int &dataLen)
+{
+    redisContext *pConn = pRedisConnPool->getConn();
+    int32_t iRet = GMCM_OK;
+    if (pConn == NULL)
+    {
+        return GMCM_FAIL;
+    }
+    else
+    {
+        const char *sArgv[3];
+        size_t iArgvLen[3];
+        sArgv[0] = "HGET";
+        iArgvLen[0] = 4;
+        sArgv[1] = hashName;
+        iArgvLen[1] = strlen(hashName);
+        sArgv[2] = key;
+        iArgvLen[2] = strlen(key);
+
+        redisReply *reply = pRedisConnPool->execCmd(pConn, 3, sArgv, iArgvLen);
+        if (reply == NULL)
+        {
+            gmcmLog::LogError() << "redis get cmd fail, key=" << key << endl;
+            iRet = GMCM_ERR_REDIS_EXEC;
+        }
+        else if(reply->len == 0)
+        {
+            iRet = GMCM_FAIL;
+            freeReplyObject(reply);
+        }
+        else
+        {
+            if(reply->len > dataLen)
+            {
+                iRet = GMCM_BUF_TOO_SMALL;
+            }
+            else
+            {
+                dataLen = reply->len;
+                memcpy(data, reply->str, reply->len);
+            }
+            freeReplyObject(reply);
+        }
+        
+
+        pRedisConnPool->realseConn(pConn);
+        return iRet;
+    }
+}
+
+int redisConn::hashDelData(const char *hashName, const char *key)
+{
+    redisContext *pConn = pRedisConnPool->getConn();
+    int32_t iRet = GMCM_OK;
+    if (pConn == NULL)
+    {
+        return GMCM_FAIL;
+    }
+    else
+    {
+        const char *sArgv[3];
+        size_t iArgvLen[3];
+        sArgv[0] = "HDEL";
+        iArgvLen[0] = 4;
+        sArgv[1] = hashName;
+        iArgvLen[1] = strlen(hashName);
+        sArgv[2] = key;
+        iArgvLen[2] = strlen(key);
+
+        redisReply *reply = pRedisConnPool->execCmd(pConn, 3, sArgv, iArgvLen);
+        if (reply == NULL)
+        {
+            gmcmLog::LogError() << "redis get cmd fail, key=" << key << endl;
+            iRet = GMCM_ERR_REDIS_EXEC;
+        }
+        else
+        {
+            freeReplyObject(reply);
+        }
+
+        pRedisConnPool->realseConn(pConn);
+        return iRet;
+    }
+}
+
+int redisConn::hashKeys(const char *hashName, vector<string> *keys)
+{
+    redisContext *pConn = pRedisConnPool->getConn();
+    int32_t iRet = GMCM_OK;
+    if (pConn == NULL)
+    {
+        return GMCM_FAIL;
+    }
+    else
+    {
+        const char *sArgv[2];
+        size_t iArgvLen[2];
+        sArgv[0] = "HKEYS";
+        iArgvLen[0] = 5;
+        sArgv[1] = hashName;
+        iArgvLen[1] = strlen(hashName);
+
+        redisReply *reply = pRedisConnPool->execCmd(pConn, 2, sArgv, iArgvLen);
+        if (reply == NULL)
+        {
+            gmcmLog::LogError() << "redis get all fail, key=" << hashName << endl;
+            iRet = GMCM_ERR_REDIS_EXEC;
+        }
+        else if (reply->type != REDIS_REPLY_ARRAY)
+        {
+            iRet = GMCM_ERR_REPLY_EMPTY;
+            gmcmLog::LogError() << "reply type = " << reply->type << endl;
+            gmcmLog::LogError() << "redis get all, invalid reply type, key=" << hashName << endl;
+            freeReplyObject(reply);
+        }
+        else
+        {
+            for (size_t i = 0; i < reply->elements; i++)
+            {
+                redisReply *pRep = reply->element[i];
+                keys->push_back(string(pRep->str, pRep->len));
+            }
+
+            freeReplyObject(reply);
+        }
+
+        pRedisConnPool->realseConn(pConn);
+        return iRet;
+    }
+}
+
+int redisConn::hashGetAll(const char *hashName, vector<string> *keys, vector<string> *vals)
+{
+    redisContext *pConn = pRedisConnPool->getConn();
+    int32_t iRet = GMCM_OK;
+    if (pConn == NULL)
+    {
+        return GMCM_FAIL;
+    }
+    else
+    {
+        const char *sArgv[2];
+        size_t iArgvLen[2];
+        sArgv[0] = "HGETALL";
+        iArgvLen[0] = 7;
+        sArgv[1] = hashName;
+        iArgvLen[1] = strlen(hashName);
+
+        redisReply *reply = pRedisConnPool->execCmd(pConn, 2, sArgv, iArgvLen);
+        if (reply == NULL)
+        {
+            gmcmLog::LogError() << "redis get all fail, key=" << hashName << endl;
+            iRet = GMCM_ERR_REDIS_EXEC;
+        }
+        else if (reply->type != REDIS_REPLY_ARRAY)
+        {
+            iRet = GMCM_ERR_REPLY_EMPTY;
+            gmcmLog::LogError() << "reply type = " << reply->type << endl;
+            gmcmLog::LogError() << "redis get all, invalid reply type, key=" << hashName << endl;
+            freeReplyObject(reply);
+        }
+        else
+        {
+            for (size_t i = 0; i < reply->elements; i += 2)
+            {
+                redisReply *pRep = reply->element[i];
+                keys->push_back(string(pRep->str, pRep->len));
+                pRep = reply->element[i + 1];
+                vals->push_back(string(pRep->str, pRep->len));
+            }
+
             freeReplyObject(reply);
         }
 

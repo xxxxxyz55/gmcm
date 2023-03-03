@@ -17,7 +17,7 @@ int main(int argc, char const *argv[])
     int choose = 0;
     if(argc == 1)
     {
-        choose = utilTool::std_get_int("1 test encrypt\n"
+        choose = utilTool::stdGetInt("1 test encrypt\n"
                                        "2 test hash\n"
                                        "3 test sign\n"
                                        "4 test enc\n");

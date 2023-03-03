@@ -3,7 +3,7 @@
 #define _CM_SERVER_H_
 
 #include "util/tc_epoll_server.h"
-#include "gmcmLog.h"
+#include "tool/gmcmLog.h"
 #include "algProvider/algProvider.h"
 
 using namespace  std;
@@ -13,26 +13,27 @@ using namespace tars;
 class gmcmServer : public TC_EpollServer
 {
 private:
-    gmcmLog _logger;
-    dso _sdkLib;
-    sdfMeth _sdfMeth;
-    static gmcmServer *_Server;
-    gmcmServer(/* args */);
+    static gmcmServer *_gmcmServer;
+#if TARS_SSL
+    SSL_CTX *_tlsCtx = NULL;
+    void loadTls();
+    void checkCertFile();
+#endif
+    gmcmServer(/* args */){};
+    int init();
 
     int bindTcp(const char *port, const char *serviceName);
     int bindHttp(const char *port, const char *serviceName);
-
-public:
+    void serverExit();
+    void dealSignal(std::function<void()>);
     template <typename T>
     int addService(const char *host, const char *serviceName, const TC_NetWorkBuffer::protocol_functor &pf);
 
-    void dealSignal(std::function<void()> porcessExit = exit);
+public:
 
-    static void exit();
-    static gmcmServer *getGlobleServer();
-    static sdfMeth *getSdfMeth();
+    static int startGmcmServer();
 
-    ~gmcmServer() {}
+    ~gmcmServer();
 };
 
 #endif

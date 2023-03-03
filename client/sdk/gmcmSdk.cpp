@@ -1,11 +1,13 @@
 #include <iostream>
 #include "gmcmSdk.h"
 #include "../include/gmcmSdkApi.h"
-#include "../../server/src/apiEngine/packgeDefine.h"
+#include "pst.h"
 #include "../../server/src/gmcmErr.h"
+#include "../../server/src/package/packageDefine.h"
 
 using namespace std;
 using namespace tars;
+using namespace pst;
 
 int SDF_OpenDevice(void **phDeviceHandle)
 {
@@ -106,6 +108,7 @@ public:
         }
 
         resp.pointToBuffer(pSession->pkt.getRespStr(), pSession->pkt.getRespStrLen());
+        // resp.print();
         return 0;
     }
 
@@ -121,16 +124,14 @@ int SDF_GenerateRandom(void *hSessionHandle, SGD_UINT32 uiLength, SGD_UCHAR *puc
 
     gmcmSdkCtx<reqRandBytes, respRandBytes> ctx(hSessionHandle, "0002");
 
-    *ctx.req.length = uiLength;
-    *ctx.req.lengthPlen = sizeof(unsigned int);
-
+    ctx.req.length.setVal(uiLength);
     int ret = ctx.sendRecv();
     if (ret)
     {
         return ret;
     }
 
-    memcpy(pucRandom, ctx.resp.random, *ctx.resp.randomPlen);
+    memcpy(pucRandom, ctx.resp.random.uStrVal(), ctx.resp.random.length());
     return 0;
 }
 
@@ -144,10 +145,8 @@ int SDF_GenerateKeyPair_ECC(void *hSessionHandle, SGD_UINT32 uiAlgID, SGD_UINT32
 
     gmcmSdkCtx<reqGenEccKeyPair, respGenEccKeyPair> ctx(hSessionHandle, "0007");
 
-    *ctx.req.algid = uiAlgID;
-    *ctx.req.algidPlen = sizeof(unsigned int);
-    *ctx.req.bits = uiKeyBits;
-    *ctx.req.bitsPlen = sizeof(unsigned int);
+    ctx.req.algid.setVal(uiAlgID);
+    ctx.req.bits.setVal(uiKeyBits);
 
     int ret = ctx.sendRecv();
     if (ret)
@@ -155,8 +154,8 @@ int SDF_GenerateKeyPair_ECC(void *hSessionHandle, SGD_UINT32 uiAlgID, SGD_UINT32
         return ret;
     }
 
-    memcpy(pucPublicKey, ctx.resp.pub, sizeof(ECCrefPublicKey));
-    memcpy(pucPrivateKey, ctx.resp.pri, sizeof(ECCrefPrivateKey));
+    memcpy(pucPublicKey, ctx.resp.pub.uStrVal(), sizeof(ECCrefPublicKey));
+    memcpy(pucPrivateKey, ctx.resp.pri.uStrVal(), sizeof(ECCrefPrivateKey));
     return 0;
 }
 
@@ -176,19 +175,18 @@ int SDF_ImportKey(void *hSessionHandle, SGD_UCHAR *pucKey, SGD_UINT32 uiKeyLengt
 
     gmcmSdkCtx<reqImportKey, respImportKey> ctx(hSessionHandle, "0017");
 
-    memcpy(ctx.req.uikey, pucKey, uiKeyLength);
-    *ctx.req.uikeyPlen = uiKeyLength;
+    ctx.req.uikey.setVal(pucKey, uiKeyLength);
 
     int ret = ctx.sendRecv();
     if (ret)
     {
         return ret;
     }
-    *phKeyHandle = new unsigned char[*ctx.resp.handlePlen];
-    memcpy(*phKeyHandle, ctx.resp.handle, *ctx.resp.handlePlen);
-    if (*ctx.resp.handlePlen != gHandleSize)
+    *phKeyHandle = new unsigned char[ctx.resp.handle.length()];
+    memcpy(*phKeyHandle, ctx.resp.handle.uStrVal(), ctx.resp.handle.length());
+    if (ctx.resp.handle.length() != gHandleSize)
     {
-        gHandleSize = *ctx.resp.handlePlen;
+        gHandleSize = ctx.resp.handle.length();
     }
     return 0;
 }
@@ -202,8 +200,7 @@ int SDF_DestroyKey(void *hSessionHandle, void *hKeyHandle)
 
     gmcmSdkCtx<reqDestroyKey, respDestroyKey> ctx(hSessionHandle, "0018");
 
-    memcpy(ctx.req.handle, hKeyHandle, gHandleSize);
-    *ctx.req.handlePlen = gHandleSize;
+    ctx.req.handle.setVal((unsigned char *)hKeyHandle, gHandleSize);
 
     int ret = ctx.sendRecv();
     if (ret)
@@ -228,23 +225,18 @@ int SDF_Encrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
 
     gmcmSdkCtx<reqEncrypt, respEncrypt> ctx(hSessionHandle, "0027");
 
-    memcpy(ctx.req.handle, hKeyHandle, gHandleSize);
-    *ctx.req.handlePlen = gHandleSize;
-    *ctx.req.algid = uiAlgID;
-    *ctx.req.algidPlen = 4;
+    ctx.req.handle.setVal((unsigned char *)hKeyHandle, gHandleSize);
+    ctx.req.algid.setVal(uiAlgID);
     if(pucIV)
     {
-        memcpy(ctx.req.iv, pucIV, 16);
-        *ctx.req.ivPlen = 16;
+        ctx.req.iv.setVal(pucIV, (unsigned int)16);
     }
     else
     {
-        *ctx.req.ivPlen = 0;
+        ctx.req.iv.setVal(pucIV, (unsigned int)0);
     }
 
-
-    memcpy(ctx.req.data, pucData, uiDataLength);
-    *ctx.req.dataPlen = uiDataLength;
+    ctx.req.data.setVal(pucData, uiDataLength);
 
     int ret = ctx.sendRecv();
     if (ret)
@@ -252,11 +244,11 @@ int SDF_Encrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
         return ret;
     }
 
-    memcpy(pucEncData, ctx.resp.encData, *ctx.resp.encDataPlen);
-    *puiEncDataLength = *ctx.resp.encDataPlen;
+    memcpy(pucEncData, ctx.resp.encData.uStrVal(), ctx.resp.encData.length());
+    *puiEncDataLength = ctx.resp.encData.length();
     if(pucIV)
     {
-        memcpy(pucIV, ctx.resp.iv, *ctx.resp.ivPlen);
+        memcpy(pucIV, ctx.resp.iv.uStrVal(), ctx.resp.iv.length());
     }
 
     return 0;
@@ -273,22 +265,20 @@ int SDF_Decrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
     }
 
     gmcmSdkCtx<reqDecrypt, respDecrypt> ctx(hSessionHandle, "0028");
-    memcpy(ctx.req.handle, hKeyHandle, gHandleSize);
-    *ctx.req.handlePlen = gHandleSize;
-    *ctx.req.algid = uiAlgID;
-    *ctx.req.algidPlen = 4;
+    ctx.req.handle.setVal((unsigned char *)hKeyHandle, gHandleSize);
+    ctx.req.algid.setVal(uiAlgID);
     if(pucIV)
     {
-        memcpy(ctx.req.iv, pucIV, 16);
-        *ctx.req.ivPlen = 16;
+        ctx.req.iv.setVal(pucIV, (unsigned int)16);
     }
     else
     {
-        *ctx.req.ivPlen = 0;
+        ctx.req.iv.setVal(pucIV, (unsigned int)0);
     }
     
-    memcpy(ctx.req.encData, pucEncData, uiEncDataLength);
-    *ctx.req.encDataPlen = uiEncDataLength;
+    ctx.req.encData.setVal(pucEncData, uiEncDataLength);
+
+    
 
     int ret = ctx.sendRecv();
     if (ret)
@@ -296,11 +286,11 @@ int SDF_Decrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
         return ret;
     }
 
-    memcpy(pucData, ctx.resp.decData, *ctx.resp.decDataPlen);
-    *puiDataLength = *ctx.resp.decDataPlen;
+    memcpy(pucData, ctx.resp.decData.uStrVal(), ctx.resp.decData.length());
+    *puiDataLength = ctx.resp.decData.length();
     if (pucIV)
     {
-        memcpy(pucIV, ctx.resp.iv, *ctx.resp.ivPlen);
+        memcpy(pucIV, ctx.resp.iv.uStrVal(), ctx.resp.iv.length());
     }
 
     return 0;

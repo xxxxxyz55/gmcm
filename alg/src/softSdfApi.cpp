@@ -1,5 +1,4 @@
 #include <iostream>
-#include <stdlib.h>
 #include "gmcmalgConf.h"
 #include "../include/softSdfApi.h"
 #include "../include/algApi.h"
@@ -8,25 +7,18 @@
 
 using namespace std;
 
-static key_mgmt_meth *gKeyMeth = NULL;
-static session_cb *gSessionCb = NULL;
-
-int SDF_SetMgmtMeth(key_mgmt_meth *pKeyMeth, session_cb * pSessionMeth)
-{
-    gKeyMeth = pKeyMeth;
-    gSessionCb = pSessionMeth;
-    return 0;
-}
-
-key_mgmt_meth *SDF_GetKeyMgmtMeth()
-{
-    return gKeyMeth;
-}
+#define DEV_HANDLE(pDev)          ((sdf_dev *)pDev)
+#define DEV_HKEY(pDev)            ((uiKeyArray *)(DEV_HANDLE(pDev)->sessionKeyMgmt))
+#define SESSION_HANDLE(pSession)  ((sdf_session *)pSession)
+#define SESSION_HKEY(pSession)    DEV_HKEY(SESSION_HANDLE(pSession)->pDev)
+#define SESSION_METH(pSession)    SESSION_HANDLE(pSession)->pDev->sessionMeth
+#define SESSION_KEYMETH(pSession) SESSION_HANDLE(pSession)->pDev->keyMgmtMeth
 
 int SDF_OpenDevice(void **phDeviceHandle)
 {
-    *phDeviceHandle = malloc(sizeof(void *));
-    uiKeyArray::get_uikey_array();
+    sdf_dev * pDev = new sdf_dev;
+    pDev->sessionKeyMgmt = new uiKeyArray(0);
+    *phDeviceHandle = pDev;
     return 0;
 }
 
@@ -34,33 +26,61 @@ int SDF_CloseDevice(void *hDeviceHandle)
 {
     if (hDeviceHandle)
     {
-        free(hDeviceHandle);
+        if(DEV_HANDLE(hDeviceHandle)->sessionMeth && DEV_HANDLE(hDeviceHandle)->sessionMeth->close)
+        {
+            DEV_HANDLE(hDeviceHandle)->sessionMeth->close(DEV_HANDLE(hDeviceHandle)->sessionMeth->obj);
+        }
+
+        if (DEV_HANDLE(hDeviceHandle)->keyMgmtMeth && DEV_HANDLE(hDeviceHandle)->keyMgmtMeth->close)
+        {
+            DEV_HANDLE(hDeviceHandle)->keyMgmtMeth->close(DEV_HANDLE(hDeviceHandle)->keyMgmtMeth->obj);
+        }
+        delete DEV_HKEY(hDeviceHandle);
+        delete DEV_HANDLE(hDeviceHandle);
     }
+    return 0;
+}
+
+int SDF_OpenDeviceWithCb(void **phDeviceHandle, session_meth *pSessionMeth,
+                           key_mgmt_meth *pKeyMeth, int hKeyTimeout)
+{
+    sdf_dev * pDev = new sdf_dev;
+    pDev->sessionMeth = pSessionMeth;
+    pDev->keyMgmtMeth = pKeyMeth;
+    pDev->sessionKeyMgmt = new uiKeyArray(hKeyTimeout);
+    *phDeviceHandle = pDev;
     return 0;
 }
 
 int SDF_OpenSession(void *hDeviceHandle, void **phSessionHandle)
 {
-    *phSessionHandle = calloc(1, sizeof(sdf_session));
-    ((sdf_session *)(*phSessionHandle))->hashCtxLen = 256;
-    if(gSessionCb && gSessionCb->open_session_cb)
+    if(hDeviceHandle == NULL)
     {
-        return gSessionCb->open_session_cb(((sdf_session *)*phSessionHandle)->handle);
+        return -1;
+    }
+
+    *phSessionHandle = new sdf_session;
+    SESSION_HANDLE(*phSessionHandle)->pDev = (sdf_dev *)hDeviceHandle;
+    SESSION_HANDLE(*phSessionHandle)->hashCtxLen = 256;
+    if (SESSION_METH(*phSessionHandle) && SESSION_METH(*phSessionHandle)->open_session_cb)
+    {
+        return SESSION_METH(*phSessionHandle)->open_session_cb(((sdf_session *)*phSessionHandle)->handle);
     }
     return 0;
 }
 
 int SDF_CloseSession(void *hSessionHandle)
 {
-    if (hSessionHandle)
+    if(hSessionHandle == NULL)
     {
-        free(hSessionHandle);
+        return 0;
     }
 
-    if (gSessionCb && gSessionCb->close_session_cb)
+    if (SESSION_METH(hSessionHandle) && SESSION_METH(hSessionHandle)->close_session_cb)
     {
-        return gSessionCb->close_session_cb(hSessionHandle);
+        return SESSION_METH(hSessionHandle)->close_session_cb(((sdf_session *)hSessionHandle)->handle);
     }
+    delete SESSION_HANDLE(hSessionHandle);
 
     return 0;
 }
@@ -103,31 +123,31 @@ int SDF_GenerateRandom(void *hSessionHandle, SGD_UINT32 uiLength, SGD_UCHAR *puc
 
 int SDF_GetPrivateKeyAccessRight(void *hSessionHandle, SGD_UINT32 uiKeyIndex, SGD_UCHAR *pucPassword, SGD_UINT32 uiPwdLength)
 {
-    if (gKeyMeth && gKeyMeth->get_priKey_access_right)
+    if (SESSION_KEYMETH(hSessionHandle) && SESSION_KEYMETH(hSessionHandle)->get_priKey_access_right)
     {
-        return gKeyMeth->get_priKey_access_right(hSessionHandle, uiKeyIndex, pucPassword, uiPwdLength);
+        return SESSION_KEYMETH(hSessionHandle)->get_priKey_access_right(hSessionHandle, uiKeyIndex, pucPassword, uiPwdLength);
     }
     return 0;
 }
 
 int SDF_ReleasePrivateKeyAccessRight(void *hSessionHandle, SGD_UINT32 uiKeyIndex)
 {
-    if (gKeyMeth && gKeyMeth->realse_priKey_access_right)
+    if (SESSION_KEYMETH(hSessionHandle) && SESSION_KEYMETH(hSessionHandle)->realse_priKey_access_right)
     {
-        return gKeyMeth->realse_priKey_access_right(hSessionHandle, uiKeyIndex);
+        return SESSION_KEYMETH(hSessionHandle)->realse_priKey_access_right(hSessionHandle, uiKeyIndex);
     }
     return 0;
 }
 
 int SDF_ExportSignPublicKey_ECC(void *hSessionHandle, SGD_UINT32 uiKeyIndex, ECCrefPublicKey *pucPublicKey)
 {
-    if(gKeyMeth == NULL || gKeyMeth->get_sign_pubKey_ecc == NULL)
+    if(SESSION_KEYMETH(hSessionHandle) == NULL || SESSION_KEYMETH(hSessionHandle)->get_sign_pubKey_ecc == NULL)
     {
         return SDR_OPER_NOT_SUPPORT;
     }
     else
     {
-        return gKeyMeth->get_sign_pubKey_ecc(uiKeyIndex, pucPublicKey);
+        return SESSION_KEYMETH(hSessionHandle)->get_sign_pubKey_ecc(uiKeyIndex, pucPublicKey);
     }
     
     return 0;
@@ -135,13 +155,13 @@ int SDF_ExportSignPublicKey_ECC(void *hSessionHandle, SGD_UINT32 uiKeyIndex, ECC
 
 int SDF_ExportEncPublicKey_ECC(void *hSessionHandle, SGD_UINT32 uiKeyIndex, ECCrefPublicKey *pucPublicKey)
 {
-    if(gKeyMeth == NULL || gKeyMeth->get_sign_pubKey_ecc == NULL)
+    if(SESSION_KEYMETH(hSessionHandle) == NULL || SESSION_KEYMETH(hSessionHandle)->get_sign_pubKey_ecc == NULL)
     {
         return SDR_OPER_NOT_SUPPORT;
     }
     else
     {
-        return gKeyMeth->get_enc_pubKey_ecc(uiKeyIndex, pucPublicKey);
+        return SESSION_KEYMETH(hSessionHandle)->get_enc_pubKey_ecc(uiKeyIndex, pucPublicKey);
     }
 
     return 0;
@@ -226,8 +246,7 @@ int SDF_ImportKey(void *hSessionHandle, SGD_UCHAR *pucKey, SGD_UINT32 uiKeyLengt
         return SDR_DATA_LENGTH;
     }
 
-    uiKeyArray * pUikeys = uiKeyArray::get_uikey_array();
-    return pUikeys->import_key(pucKey, uiKeyLength, phKeyHandle);
+    return SESSION_HKEY(hSessionHandle)->import_key(pucKey, uiKeyLength, phKeyHandle);
 }
 
 int SDF_DestroyKey(void *hSessionHandle, void *hKeyHandle)
@@ -237,8 +256,7 @@ int SDF_DestroyKey(void *hSessionHandle, void *hKeyHandle)
         return SDR_PARAM_NULL;
     }
 
-    uiKeyArray *pUikeys = uiKeyArray::get_uikey_array();
-    return pUikeys->delKey(hKeyHandle);
+    return SESSION_HKEY(hSessionHandle)->delKey(hKeyHandle);
 }
 
 int SDF_ExternalSign_ECC(void *hSessionHandle, SGD_UINT32 uiAlgID, ECCrefPrivateKey *pucPrivateKey, SGD_UCHAR *pucData, SGD_UINT32 uiDataLength, ECCSignature *pucSignature)
@@ -330,10 +348,9 @@ int SDF_Encrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
         return SDR_PARAM_NULL;
     }
 
-    uiKeyArray * pUikeys = uiKeyArray::get_uikey_array();
     unsigned char key[16];
     unsigned int keyLen;
-    if (pUikeys->getKey(hKeyHandle, key, &keyLen) || keyLen < 16)
+    if (SESSION_HKEY(hSessionHandle)->getKey(hKeyHandle, key, &keyLen) || keyLen < 16)
     {
         return SDR_UIKEY_NOT_EXIST;
     }
@@ -364,11 +381,11 @@ int SDF_Decrypt(void *hSessionHandle, void *hKeyHandle, SGD_UINT32 uiAlgID, SGD_
         return SDR_PARAM_NULL;
     }
 
-    uiKeyArray *pUikeys = uiKeyArray::get_uikey_array();
     unsigned char key[16];
     unsigned int keyLen;
-    if (pUikeys->getKey(hKeyHandle, key, &keyLen) || keyLen < 16)
+    if (SESSION_HKEY(hSessionHandle)->getKey(hKeyHandle, key, &keyLen) || keyLen < 16)
     {
+        printf("handle not exist [%d]\n", *(unsigned int *)hKeyHandle);
         return SDR_UIKEY_NOT_EXIST;
     }
 

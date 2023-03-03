@@ -1,0 +1,48 @@
+ GM cryptographic module
+
+功能:
+1. alg 
+算法库，gmssl接口封装为GM/T 0018 标准接口，支持嵌入密钥管理功能
+
+2.server
+密码应用框架，用于快速构建国密密码应用
+支持动态库方式外部嵌入密码卡，密码机
+提供tcp，http协议密码运算功能
+
+
+构建:
+cd build && cmake ..
+make 
+make install
+
+依赖项:
+redis           服务
+gmssl           库
+tarscpp/util    源码包含
+cJson           库
+concurrentqueue 源码包含
+
+
+目录结构:
+├──gmcm
+    ├──alg                 算法及软算法SOF接口库
+    ├──build               在此构建
+    ├──client              客户端sdk库
+    ├──external_include    外部依赖头文件
+    ├──external_lib        外部依赖头文件
+    ├──gtest               一些测试
+    ├──rpc                 rpc 通信库
+    ├──server              服务端
+    ├──tools               工具
+
+安装目录:
+├──gmcm
+    ├──server              服务端
+    ├──sdk                 sdk
+    ├──alg                 算法库
+├──lib                     库安装路径
+
+
+
+
+

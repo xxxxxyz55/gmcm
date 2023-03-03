@@ -24,17 +24,17 @@ int test_random()
     int count = 100;
     while (count --)
     {
-        randLen = 4096;
+        randLen = 32 * (count + 1);
         ret = SDF_GenerateRandom(pSession, randLen, rand);
         if (ret)
         {
             printf("SDF_GenerateRandom fail %d\n", ret);
             break;
         }
-        // else
-        // {
-        //     utilTool::printHex(rand, randLen);
-        // }
+        else
+        {
+            utilTool::printHex(rand, randLen);
+        }
     }
 
     SDF_CloseSession(pSession);
@@ -59,7 +59,7 @@ int gen_sm2()
     ECCrefPublicKey pub;
     ECCrefPrivateKey pri;
 
-    int count = 100;
+    int count = 1;
     while (count --)
     {
         ret = SDF_GenerateKeyPair_ECC(pSession, SGD_SM2, 256, &pub, &pri);
@@ -229,7 +229,7 @@ int main(int argc, char const *argv[])
             goto end;
             break;
         }
-    } while ((choose = utilTool::std_get_int(">>")));
+    } while ((choose = utilTool::stdGetInt(">>")));
 
 end:
     SDF_CloseDevice(gDev);

@@ -24,11 +24,6 @@ typedef struct uiKey_st
 class EXPORT_FUNC uiKeyArray
 {
 private:
-    //0 为关闭
-    //超时时间 单位 ms
-    uiKeyArray(int uikey_timeout = 0);
-    static uiKeyArray *gUiKeyArray;
-
     uikey * keyArrayUsing[MAX_UIKEY_NUM];
     rwlock _lock;
 
@@ -36,12 +31,14 @@ private:
 
     std::thread *ukeyTimeoutThread = NULL;
     eventWait ukeyTimeouThreadExit;
-    static int deal_with_uikey_timeout_route(int uikey_timeout);
+    int deal_with_uikey_timeout_route(int uikey_timeout);
     void exit_ukey_timeout_thread();
 
 public:
 
-    static uiKeyArray *get_uikey_array();
+    //0 为关闭
+    //超时时间 单位 ms
+    uiKeyArray(int uikey_timeout = 0);
     int import_key(unsigned char *key, unsigned int length, void **handle);
     int getKey(void *handle, unsigned char *key, unsigned int *length);
     int delKey(void *handle);

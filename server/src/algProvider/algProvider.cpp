@@ -2,7 +2,7 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include "../gmcmErr.h"
-#include "../gmcmLog.h"
+#include "../tool/gmcmLog.h"
 #include "../serverConf.h"
 
 int dso::load_so_lib(const char *soPath)
@@ -72,10 +72,6 @@ void *dso::getFuncPointer(const char *funcName)
             gmcmLog::LogError() << libPath << " load func " << funcName << " failed." << endl; \
             return GMCM_FAIL;                                                                  \
         }                                                                                      \
-        else                                                                                   \
-        {                                                                                      \
-            pFunc##_FuncName = funcName;                                                            \
-        }                                                                                      \
     } while (0);
 
 int sdfMeth::load_all_sdf_func()
@@ -133,19 +129,28 @@ int sdfMeth::load_all_sdf_func()
     return GMCM_OK;
 }
 
-int sdfMeth::OpenDevice()
+int sdfMeth::OpenDevice(session_meth *pSessionMeth, key_mgmt_meth *pKeyMeth)
 {
     if (pDevHandle == NULL)
     {
-        int iRet = this->tMeth.OpenDevice(&pDevHandle);
+        int iRet;
+        if (pSessionMeth || pKeyMeth)
+        {
+            DSO_LOAD_FUNC(pLib, tMeth.OpenDeviceWithCb, "SDF_OpenDeviceWithCb")
+            iRet = this->tMeth.OpenDeviceWithCb(&pDevHandle, pSessionMeth, pKeyMeth, 0);
+        }
+        else
+        {
+            iRet = this->tMeth.OpenDevice(&pDevHandle);
+        }
         if (iRet)
         {
-            gmcmLog::LogError() << pLib->getLibPath() << " " << tMeth.OpenDevice_FuncName << " return err " << iRet << "." << endl;
+            gmcmLog::LogError() << pLib->getLibPath() << " OpenDevice return err " << iRet << "." << endl;
             return iRet;
         }
         else
         {
-            gmcmLog::LogInfo() << pLib->getLibPath() << " " << tMeth.OpenDevice_FuncName << " success " << iRet << "." << endl;
+            gmcmLog::LogInfo() << pLib->getLibPath() << " OpenDevice success " << iRet << "." << endl;
         }
     }
 
@@ -176,7 +181,7 @@ void *sdfMeth::getSession()
         int iRet = this->tMeth.OpenSession(pDevHandle, &pSession);
         if (iRet)
         {
-            gmcmLog::LogError() << pLib->getLibPath() << " " << tMeth.OpenSession_FuncName << " return err " << iRet << "." << endl;
+            gmcmLog::LogError() << pLib->getLibPath() << " OpenSession return err " << iRet << "." << endl;
             return NULL;
         }
     }
@@ -249,7 +254,6 @@ int sdfMeth::ImportKey(SGD_UCHAR *pucKey, SGD_UINT32 uiKeyLength, unsigned char 
     }
     else
     {
-        printf("import handle num = %d\n", *(unsigned int *)handlPtr);
         HANDLE_TO_STR(handlPtr, handleStr, *length)
     }
     return iRet;
@@ -265,7 +269,6 @@ int sdfMeth::DestroyKey(unsigned char *handleStr, unsigned short length)
     }
     void * handPtr = NULL;
     STR_TO_HANDLE(handleStr, length, handPtr)
-    printf("destroy handle num = %d\n", *(unsigned int *)handPtr);
     int iRet = tMeth.DestroyKey(pSession, handPtr);
     this->realseSession(pSession);
     return iRet;

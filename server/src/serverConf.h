@@ -1,10 +1,6 @@
+#define SDF_API_LIB "/lib/libgmcmalg.so"
 
-#define SERVICE_SDK_API  "tcp -h 0.0.0.0 -p 8805 -t 0"
-#define SERVICE_HTTP_API "tcp -h 0.0.0.0 -p 8806 -t 0"
-
-
-#define SDF_API_LIB "../lib/libgmcmalg.so"
-
+//兼容会话密钥句柄
 #define HANDLE_TO_STR(hKeyHandle, handle, length) \
     do                                            \
     {                                             \
@@ -25,3 +21,25 @@
     {                                      \
         delete (unsigned int *)hKeyHandle; \
     } while (0);
+
+// TLS
+#define GMCM_ENABLE_HTTPS 1
+//0 rsa
+//1 sm2
+//不存在则生成一套
+#define GMCM_CERT_TYPE 0
+#define GMCM_CA_DIR    "./cert/ca"
+#define GMCM_SIGN_CERT "./cert/sign.cer"
+#define GMCM_SIGN_KEY  "./cert/sign.key"
+#define GMCM_ENC_CERT  "./cert/enc.cer"
+#define GMCM_ENC_KEY   "./cert/enc.key"
+
+#if GMCM_ENABLE_HTTPS
+#define HTTP "ssl"
+#else
+#define HTTP "tcp"
+#endif
+
+#define SERVICE_SDK_API  "tcp -h 0.0.0.0 -p 8805 -t 0"
+#define SERVICE_HTTP_API HTTP " -h 0.0.0.0 -p 8806 -t 0"
+#define SERVICE_MGMT_API HTTP " -h 0.0.0.0 -p 8807 -t 0"

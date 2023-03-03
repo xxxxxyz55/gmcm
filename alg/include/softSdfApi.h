@@ -2,6 +2,7 @@
 #define _GMCM_SOFT_SDF_API_H_
 
 #include "gmcmSdf.h"
+#include <functional>
 
 #ifdef __cplusplus
 extern "C"
@@ -12,40 +13,55 @@ extern "C"
 #define SDF_EXPORT_FUNC
 #endif
 
-typedef struct session_cb_st
+#ifndef SESSION_METH
+typedef struct session_meth_st
 {
-    int (*open_session_cb)(void *hSessionHandle);
-    int (*close_session_cb)(void *hSessionHandle);
-} session_cb;
+    std::function<int(void *hSessionHandle)> open_session_cb;
+    std::function<int(void *hSessionHandle)> close_session_cb;
+    void * obj;
+    std::function<int(void *obj)> close;
+} session_meth;
 
 typedef struct key_mgmt_meth_st
 {
-    int (*get_sign_pubKey_ecc)(unsigned int uiKeyIndex, ECCrefPublicKey *pucPublicKey);
-    int (*get_sign_priKey_ecc)(unsigned int uiKeyIndex, ECCrefPrivateKey *pucPrivateKey);
-    int (*get_enc_pubKey_ecc)(unsigned int uiKeyIndex, ECCrefPublicKey *pucPublicKey);
-    int (*get_enc_priKey_ecc)(unsigned int uiKeyIndex, ECCrefPrivateKey *pucPrivateKey);
-    int (*get_kek)(unsigned int uiKeyIndex, unsigned char *key, unsigned int *keyLen, unsigned int *keyalg);
-    int (*get_priKey_access_right)(void *hSessionHandle, unsigned int uiKeyIndex, unsigned char *pucPassword, unsigned int uiPwdLength);
-    int (*realse_priKey_access_right)(void *hSessionHandle, unsigned int uiKeyIndex);
+    std::function<int(unsigned int uiKeyIndex, ECCrefPublicKey *pucPublicKey)> get_sign_pubKey_ecc;
+    std::function<int(unsigned int uiKeyIndex, ECCrefPrivateKey *pucPrivateKey)> get_sign_priKey_ecc;
+    std::function<int(unsigned int uiKeyIndex, ECCrefPublicKey *pucPublicKey)> get_enc_pubKey_ecc;
+    std::function<int(unsigned int uiKeyIndex, ECCrefPrivateKey *pucPrivateKey)> get_enc_priKey_ecc;
+    std::function<int(unsigned int uiKeyIndex, unsigned char *key, unsigned int *keyLen, unsigned int *keyalg)> get_kek;
+    std::function<int(void *hSessionHandle, unsigned int uiKeyIndex, unsigned char *pucPassword, unsigned int uiPwdLength)> get_priKey_access_right;
+    std::function<int(void *hSessionHandle, unsigned int uiKeyIndex)> realse_priKey_access_right;
+    void * obj;
+    std::function<int(void *obj)> close;
 } key_mgmt_meth;
+#endif
+
+typedef struct sdf_dev_st
+{
+    key_mgmt_meth   *keyMgmtMeth;
+    session_meth      *sessionMeth;
+    void *          sessionKeyMgmt;
+} sdf_dev;
+
 
 typedef struct sdf_session_st
 {
-    void *handle;
-    int hashProc;
+    sdf_dev       *pDev;
+    void          *handle;
+    int           hashProc;
     unsigned char hashCtx[256];
-    unsigned int hashCtxLen;
+    unsigned int  hashCtxLen;
 } sdf_session;
+
 
 #define HASH_CTX(session) ((sdf_session *)session)->hashCtx
 #define HASH_CTX_LEN(session) ((sdf_session *)session)->hashCtxLen
 
-//设置密钥管理接口回调
-SDF_EXPORT_FUNC int SDF_SetMgmtMeth(key_mgmt_meth *pKeyMeth, session_cb * pSessionMeth);
-SDF_EXPORT_FUNC key_mgmt_meth *SDF_GetKeyMgmtMeth();
 
 SDF_EXPORT_FUNC int SDF_OpenDevice(void **phDeviceHandle);
 SDF_EXPORT_FUNC int SDF_CloseDevice(void *hDeviceHandle);
+//设置密钥管理接口回调
+SDF_EXPORT_FUNC int SDF_OpenDeviceWithCb(void **phDeviceHandle, session_meth *pSessionMeth, key_mgmt_meth *pKeyMeth, int hKeyTimeout);
 SDF_EXPORT_FUNC int SDF_OpenSession(void *hDeviceHandle, void **phSessionHandle);
 SDF_EXPORT_FUNC int SDF_CloseSession(void *hSessionHandle);
 SDF_EXPORT_FUNC int SDF_GetDeviceInfo(void *hSessionHandle, DEVICEINFO *pstDeviceInfo);

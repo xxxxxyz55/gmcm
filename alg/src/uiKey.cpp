@@ -3,43 +3,31 @@
 #include "gmcmTime.h"
 #include <string.h>
 
-uiKeyArray *uiKeyArray::gUiKeyArray = NULL;
-
 int uiKeyArray::deal_with_uikey_timeout_route(int uikey_timeout)
 {
-    while (eventWait::wait_for(&gUiKeyArray->ukeyTimeouThreadExit, uikey_timeout, true) == false)
+    while (eventWait::wait_for(&this->ukeyTimeouThreadExit, uikey_timeout, true) == false)
     {
         for (size_t i = 0; i < MAX_UIKEY_NUM; i++)
         {
-            gUiKeyArray->_lock.rlock();
-            if (gUiKeyArray->keyArrayUsing[i] &&
-                gmcmTime::getTime() - gUiKeyArray->keyArrayUsing[i]->updateTime > uikey_timeout / 1000)
+            this->_lock.rlock();
+            if (this->keyArrayUsing[i] &&
+                gmcmTime::getTime() - this->keyArrayUsing[i]->updateTime > uikey_timeout / 1000)
             {
-                gUiKeyArray->_lock.unlock();
-                gUiKeyArray->_lock.wlock();
+                this->_lock.unlock();
+                this->_lock.wlock();
 
-                if (gUiKeyArray->keyQueueIdle.enqueue(gUiKeyArray->keyArrayUsing[i]) == false)
+                if (this->keyQueueIdle.enqueue(this->keyArrayUsing[i]) == false)
                 {
                     ALG_LOG_ERROR("timeout uikey enqueue fail.")
-                    delete gUiKeyArray->keyArrayUsing[i];
+                    delete this->keyArrayUsing[i];
                 }
-                gUiKeyArray->keyArrayUsing[i] = NULL;
-                gUiKeyArray->_lock.unlock();
+                this->keyArrayUsing[i] = NULL;
+                this->_lock.unlock();
             }
-            gUiKeyArray->_lock.unlock();
+            this->_lock.unlock();
         }
     }
     return GMCM_OK;
-}
-
-uiKeyArray *uiKeyArray::get_uikey_array()
-{
-    if (gUiKeyArray == NULL)
-    {
-        gUiKeyArray = new uiKeyArray();
-    }
-
-    return gUiKeyArray;
 }
 
 uiKeyArray::uiKeyArray(int uikey_timeout)
@@ -59,7 +47,7 @@ uiKeyArray::uiKeyArray(int uikey_timeout)
 
     if (uikey_timeout)
     {
-        ukeyTimeoutThread = new std::thread(deal_with_uikey_timeout_route, uikey_timeout);
+        ukeyTimeoutThread = new std::thread(std::bind(&uiKeyArray::deal_with_uikey_timeout_route, this, std::placeholders::_1), uikey_timeout);
     }
 }
 

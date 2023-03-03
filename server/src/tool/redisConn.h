@@ -20,12 +20,19 @@ private:
 
 public:
     static redisConn * pRedisConnPool;
-    static redisConn *getRedisConnPool();
+    static redisConn *getRedisConnPool();//init
 
-    static int setData(char *key, unsigned char *data, unsigned int dataLen);
-    static int getData(char *key, unsigned char *data, unsigned int &dataLen);
-    static int delData(char *key);
-    ~redisConn(){};
+    //base
+    static int setData(const char *key, unsigned char *data, unsigned int dataLen, unsigned int expireTime = 0);
+    static int getData(const char *key, unsigned char *data, unsigned int &dataLen);
+    static int delData(const char *key);
+
+    //hash
+    static int hashSetData(const char *hashName, const char *key, unsigned char *data, unsigned int dataLen);
+    static int hashGetData(const char *hashName, const char *key, unsigned char *data, unsigned int &dataLen);
+    static int hashDelData(const char *hashName, const char *key);
+    static int hashKeys(const char *hashName, vector<string> *keys);
+    static int hashGetAll(const char *hashName, vector<string> *keys, vector<string> *vals);
 };
 
 

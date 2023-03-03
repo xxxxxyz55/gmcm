@@ -1,6 +1,7 @@
 #include "gmcmalgConf.h"
 #include "../include/algApi.h"
 #include "../include/softSdfApi.h"
+#include "utilFunc.h"
 #include "openssl/rand.h"
 #include "openssl/ec.h"
 #include "openssl/obj_mac.h"
@@ -31,6 +32,78 @@ int alg_random(unsigned int length, unsigned char *buf)
         return -1;
     }
     return 0;
+}
+
+int alg_str_to_int(const char *alg)
+{
+    int len = strlen(alg);
+
+    //alg len
+#define STR_ALG_TO_INT(dst, num)                            \
+    if (len == (sizeof(dst) - 1) && !memcmp(alg, dst, len)) \
+    {                                                       \
+        return num;                                         \
+    }
+
+    STR_ALG_TO_INT("SM2", SGD_SM2)
+    STR_ALG_TO_INT("sm2", SGD_SM2)
+    STR_ALG_TO_INT("RSA", SGD_RSA)
+    STR_ALG_TO_INT("rsa", SGD_RSA)
+    
+    //cert usage
+    STR_ALG_TO_INT("CA", USAGE_CA)
+    STR_ALG_TO_INT("SIGN", USAGE_SIGN)
+    STR_ALG_TO_INT("ENC", USAGE_ENC)
+    STR_ALG_TO_INT("TLS", USAGE_TLS)
+    STR_ALG_TO_INT("WEB", USAGE_WEB)
+    STR_ALG_TO_INT("TSA", USAGE_TSA)
+    STR_ALG_TO_INT("IPSEC", USAGE_IPSEC)
+    STR_ALG_TO_INT("EMAIL", USAGE_EMAIL)
+    STR_ALG_TO_INT("CARD", USAGE_CARD)
+
+    return 0;
+}
+
+static char *str_del_lf(char * str)
+{
+    char *pDst = str;
+    char *pSrc = str;
+    for (; *pSrc != '\0';)
+    {
+        if(*pSrc != '\n')
+        {
+            *pDst = *pSrc;
+            ++pDst;
+            ++pSrc;
+        }
+        else
+        {
+            pSrc++;
+        }
+    }
+    *pDst = '\0';
+    return str;
+}
+
+char *alg_pem_get_base64(char *alg)
+{
+    char *p = strstr(alg, "-----BEGIN");
+    if (p != NULL)
+    {
+        char *head = strstr(p, "\n");
+        if (head != NULL)
+        {
+            head++;
+            char *end = strstr(head, "-----END");
+            if (end != NULL)
+            {
+                *(end - 1) = '\0';
+                return str_del_lf(head);
+            }
+        }
+    }
+
+    return NULL;
 }
 
 int alg_sm2_gen_pri(unsigned char * pri)
@@ -102,8 +175,8 @@ int alg_sm2_pri_gen_pub(unsigned char * pri, unsigned char * pub_x, unsigned cha
 
 int alg_sm2_gen_key_pair(ECCrefPublicKey *pPub, ECCrefPrivateKey *pPri)
 {
-    pPri->bits = 256;
-    pPub->bits = 256;
+    pPri->bits = SM2_BITS;
+    pPub->bits = SM2_BITS;
     if (alg_sm2_gen_pri(pPri->K + 32) || alg_sm2_pri_gen_pub(pPri->K + 32, pPub->x + 32, pPub->y + 32))
     {
         return -1;
@@ -112,6 +185,70 @@ int alg_sm2_gen_key_pair(ECCrefPublicKey *pPub, ECCrefPrivateKey *pPri)
     {
         return 0;
     }
+}
+
+static void rsa_to_bin(RSA *rsa, RSArefPublicKey *pPub, RSArefPrivateKey *pPri)
+{
+    if (pPub)
+    {
+        const BIGNUM *n, *e, *d;
+        RSA_get0_key(rsa, &n, &e, &d);
+        pPub->bits = BN_num_bits(n);
+        BN_bn2bin(n, pPub->m + sizeof(pPub->m) - BN_num_bytes(n));
+        BN_bn2bin(e, pPub->e + sizeof(pPub->e) - BN_num_bytes(e));
+    }
+
+    if (pPri)
+    {
+        const BIGNUM *n, *e, *d, *p, *q, *dp, *dq, *coef;
+        RSA_get0_key(rsa, &n, &e, &d);
+        RSA_get0_factors(rsa, &p, &q);
+        RSA_get0_crt_params(rsa, &dp, &dq, &coef);
+
+        pPri->bits = BN_num_bits(n);
+        BN_bn2bin(n, pPri->m + sizeof(pPri->m) - BN_num_bytes(n));
+        BN_bn2bin(e, pPri->e + sizeof(pPri->e) - BN_num_bytes(e));
+        BN_bn2bin(d, pPri->d + sizeof(pPri->d) - BN_num_bytes(d));
+        BN_bn2bin(p, pPri->prime[0] + sizeof(pPri->prime[0]) - BN_num_bytes(p));
+        BN_bn2bin(q, pPri->prime[1] + sizeof(pPri->prime[1]) - BN_num_bytes(q));
+        BN_bn2bin(dp, pPri->pexp[0] + sizeof(pPri->pexp[0]) - BN_num_bytes(dp));
+        BN_bn2bin(dq, pPri->pexp[1] + sizeof(pPri->pexp[1]) - BN_num_bytes(dq));
+        BN_bn2bin(coef, pPri->coef + sizeof(pPri->coef) - BN_num_bytes(coef));
+    }
+}
+
+int alg_rsa_gen_key_pair(int bits, unsigned long e, RSArefPublicKey *pPub, RSArefPrivateKey *pPri)
+{
+    if(bits > RSAref_MAX_BITS)
+    {
+        ALG_LOG_ERROR("support max bits %d", RSAref_MAX_BITS);
+        return -1;
+    }
+
+    RSA *rsa = RSA_new();
+    BIGNUM *bE = BN_new();
+    int iRet = 0;
+    if(rsa == NULL || bE == NULL)
+    {
+        RSA_free(rsa);
+        BN_free(bE);
+        return -1;
+    }
+
+    BN_set_word(bE, e);
+    if (RSA_generate_key_ex(rsa, bits, bE, NULL) <= 0)
+    {
+        iRet = -1;
+        ALG_LOG_ERROR("generate rsa fail.");
+    }
+    else
+    {
+        rsa_to_bin(rsa, pPub, pPri);
+    }
+
+    RSA_free(rsa);
+    BN_free(bE);
+    return iRet;
 }
 
 void alg_padding_pkcs7(unsigned int block,
@@ -574,6 +711,7 @@ int alg_sm2_sign(ECCrefPrivateKey *pPri, unsigned char * data, unsigned int data
 }
 
 int alg_sm2_verify(ECCrefPublicKey *pPub, unsigned char *data, unsigned int dataLen, ECCSignature *sign)
+
 {
     int ret = 0;
     EC_KEY *eckey = alg_sm2_sdf_key_to_eckey(pPub, NULL);
@@ -609,4 +747,79 @@ int alg_sm2_verify(ECCrefPublicKey *pPub, unsigned char *data, unsigned int data
 
     return ret;
     
+}
+
+int alg_sm2_import(char *sPem, ECCrefPublicKey *pPub, ECCrefPrivateKey *pPri)
+{
+    void * pKey = NULL;
+
+    if (alg_pem_import_key(sPem, &pKey))
+    {
+        ALG_LOG_ERROR("import key fail.");
+        return GMCM_FAIL;
+    }
+
+    int iRet = GMCM_OK;
+    EC_KEY *pEckey = EVP_PKEY_get0_EC_KEY((EVP_PKEY *)pKey);
+    if(pEckey == NULL)
+    {
+        iRet = GMCM_FAIL;
+    }
+    else
+    {
+        if(pPub)
+        {
+            BIGNUM *x = BN_new();
+            BIGNUM *y = BN_new();
+            const EC_POINT *pPoint = EC_KEY_get0_public_key(pEckey);
+            if (EC_POINT_get_affine_coordinates_GFp(EC_KEY_get0_group(pEckey),
+                                                    pPoint, x, y, NULL) <= 0)
+            {
+                iRet = GMCM_FAIL;
+            }
+            else
+            {
+                pPub->bits = SM2_BITS;
+                BN_bn2bin(x, pPub->x + sizeof(pPub->x) - BN_num_bytes(x));
+                BN_bn2bin(y, pPub->y + sizeof(pPub->y) - BN_num_bytes(x));
+            }
+            BN_free(x);
+            BN_free(y);
+        }
+
+        if(pPri)
+        {
+            const BIGNUM *k = EC_KEY_get0_private_key(pEckey);
+            pPri->bits = SM2_BITS;
+            BN_bn2bin(k, pPri->K + sizeof(pPri->K) - BN_num_bytes(k));
+        }
+    }
+
+    alg_free_key(&pKey);
+    return iRet;
+}
+
+int alg_rsa_import(char *sPem, RSArefPublicKey *pPub, RSArefPrivateKey *pPri)
+{
+    void * pKey = NULL;
+
+    if (alg_pem_import_key(sPem, &pKey))
+    {
+        ALG_LOG_ERROR("import key fail.");
+        return GMCM_FAIL;
+    }
+
+    int iRet = GMCM_OK;
+    RSA *rsa = EVP_PKEY_get0_RSA((EVP_PKEY *)pKey);
+    if(rsa == NULL)
+    {
+        iRet = GMCM_FAIL;
+    }
+    else
+    {
+        rsa_to_bin(rsa, pPub, pPri);
+    }
+
+    alg_free_key(&pKey);
+    return iRet;
 }

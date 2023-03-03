@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "util/tc_clientsocket.h"
-#include "../../server/src/package/tcpPkt.h"
+#include "tcpPkt.h"
 #include "../include/gmcmSdkApi.h"
 
 using namespace std;

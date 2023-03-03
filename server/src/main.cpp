@@ -4,12 +4,11 @@ int main(int argc, char const *argv[])
 {
     try
     {
-        gmcmServer::getGlobleServer()->dealSignal();
-        gmcmServer::getGlobleServer()->waitForShutdown();
+        return gmcmServer::startGmcmServer();
     }
-    catch(const std::exception& e)
+    catch (const char *&e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << e << '\n';
     }
 
     return 0;

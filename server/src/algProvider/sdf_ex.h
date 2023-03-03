@@ -5,6 +5,17 @@
 typedef int (*SDF_OpenDevice_FuncPtr)(
     void **phDeviceHandle);
 
+#ifndef SESSION_METH
+typedef struct session_meth_st session_meth;
+typedef struct key_mgmt_meth_st key_mgmt_meth;
+#endif
+
+typedef int (*SDF_OpenDeviceWithCb_FuncPtr)(
+    void **phDeviceHandle, session_meth *pSessionMeth, key_mgmt_meth *pKeyMeth, int hKeyTimeout);
+
+typedef int (*SDF_OpenDevice_FuncPtr)(
+    void **phDeviceHandle);
+
 typedef int (*SDF_CloseDevice_FuncPtr)(
     void *hDeviceHandle);
 
@@ -350,117 +361,68 @@ typedef int (*SDF_DeleteObject_FuncPtr)(
 typedef struct sdf_method_st
 {
     SDF_OpenDevice_FuncPtr OpenDevice;
-    const char * OpenDevice_FuncName;
+    SDF_OpenDeviceWithCb_FuncPtr OpenDeviceWithCb;
     SDF_CloseDevice_FuncPtr CloseDevice;
-    const char * CloseDevice_FuncName;
     SDF_OpenSession_FuncPtr OpenSession;
-    const char * OpenSession_FuncName;
     SDF_CloseSession_FuncPtr CloseSession;
-    const char * CloseSession_FuncName;
     SDF_GetDeviceInfo_FuncPtr GetDeviceInfo;
-    const char * GetDeviceInfo_FuncName;
     SDF_GenerateRandom_FuncPtr GenerateRandom;
-    const char * GenerateRandom_FuncName;
 
     SDF_GetPrivateKeyAccessRight_FuncPtr GetPrivateKeyAccessRight;
-    const char * GetPrivateKeyAccessRight_FuncName;
     SDF_ReleasePrivateKeyAccessRight_FuncPtr ReleasePrivateKeyAccessRight;
-    const char * ReleasePrivateKeyAccessRight_FuncName;
 
     SDF_ExportSignPublicKey_RSA_FuncPtr ExportSignPublicKey_RSA;
-    const char * ExportSignPublicKey_RSA_FuncName;
     SDF_ExportEncPublicKey_RSA_FuncPtr ExportEncPublicKey_RSA;
-    const char * ExportEncPublicKey_RSA_FuncName;
     SDF_GenerateKeyPair_RSA_FuncPtr GenerateKeyPair_RSA;
-    const char * GenerateKeyPair_RSA_FuncName;
     SDF_GenerateKeyWithIPK_RSA_FuncPtr GenerateKeyWithIPK_RSA;
-    const char * GenerateKeyWithIPK_RSA_FuncName;
     SDF_GenerateKeyWithEPK_RSA_FuncPtr GenerateKeyWithEPK_RSA;
-    const char * GenerateKeyWithEPK_RSA_FuncName;
     SDF_ImportKeyWithISK_RSA_FuncPtr ImportKeyWithISK_RSA;
-    const char * ImportKeyWithISK_RSA_FuncName;
     SDF_ExchangeDigitEnvelopeBaseOnRSA_FuncPtr ExchangeDigitEnvelopeBaseOnRSA;
-    const char * ExchangeDigitEnvelopeBaseOnRSA_FuncName;
 
     SDF_ExportSignPublicKey_ECC_FuncPtr ExportSignPublicKey_ECC;
-    const char * ExportSignPublicKey_ECC_FuncName;
     SDF_ExportEncPublicKey_ECC_FuncPtr ExportEncPublicKey_ECC;
-    const char * ExportEncPublicKey_ECC_FuncName;
     SDF_GenerateKeyPair_ECC_FuncPtr GenerateKeyPair_ECC;
-    const char * GenerateKeyPair_ECC_FuncName;
     SDF_GenerateKeyWithIPK_ECC_FuncPtr GenerateKeyWithIPK_ECC;
-    const char * GenerateKeyWithIPK_ECC_FuncName;
     SDF_GenerateKeyWithEPK_ECC_FuncPtr GenerateKeyWithEPK_ECC;
-    const char * GenerateKeyWithEPK_ECC_FuncName;
     SDF_ImportKeyWithISK_ECC_FuncPtr ImportKeyWithISK_ECC;
-    const char * ImportKeyWithISK_ECC_FuncName;
 
     SDF_GenerateAgreementDataWithECC_FuncPtr GenerateAgreementDataWithECC;
-    const char * GenerateAgreementDataWithECC_FuncName;
     SDF_GenerateKeyWithECC_FuncPtr GenerateKeyWithECC;
-    const char * GenerateKeyWithECC_FuncName;
     SDF_GenerateAgreementDataAndKeyWithECC_FuncPtr GenerateAgreementDataAndKeyWithECC;
-    const char * GenerateAgreementDataAndKeyWithECC_FuncName;
 
     SDF_ExchangeDigitEnvelopeBaseOnECC_FuncPtr ExchangeDigitEnvelopeBaseOnECC;
-    const char * ExchangeDigitEnvelopeBaseOnECC_FuncName;
 
     SDF_GenerateKeyWithKEK_FuncPtr GenerateKeyWithKEK;
-    const char * GenerateKeyWithKEK_FuncName;
     SDF_ImportKeyWithKEK_FuncPtr ImportKeyWithKEK;
-    const char * ImportKeyWithKEK_FuncName;
     SDF_ImportKey_FuncPtr ImportKey;
-    const char * ImportKey_FuncName;
     SDF_DestroyKey_FuncPtr DestroyKey;
-    const char * DestroyKey_FuncName;
 
     SDF_ExternalPublicKeyOperation_RSA_FuncPtr ExternalPublicKeyOperation_RSA;
-    const char * ExternalPublicKeyOperation_RSA_FuncName;
     SDF_InternalPublicKeyOperation_RSA_FuncPtr InternalPublicKeyOperation_RSA;
-    const char * InternalPublicKeyOperation_RSA_FuncName;
     SDF_InternalPrivateKeyOperation_RSA_FuncPtr InternalPrivateKeyOperation_RSA;
-    const char * InternalPrivateKeyOperation_RSA_FuncName;
 
     SDF_ExternalSign_ECC_FuncPtr ExternalSign_ECC;
-    const char * ExternalSign_ECC_FuncName;
     SDF_ExternalVerify_ECC_FuncPtr ExternalVerify_ECC;
-    const char * ExternalVerify_ECC_FuncName;
     SDF_InternalSign_ECC_FuncPtr InternalSign_ECC;
-    const char * InternalSign_ECC_FuncName;
     SDF_InternalVerify_ECC_FuncPtr InternalVerify_ECC;
-    const char * InternalVerify_ECC_FuncName;
 
     SDF_ExternalEncrypt_ECC_FuncPtr ExternalEncrypt_ECC;
-    const char * ExternalEncrypt_ECC_FuncName;
     SDF_ExternalDecrypt_ECC_FuncPtr ExternalDecrypt_ECC;
-    const char * ExternalDecrypt_ECC_FuncName;
     SDF_InternalEncrypt_ECC_FuncPtr InternalEncrypt_ECC;
-    const char * InternalEncrypt_ECC_FuncName;
     SDF_InternalDecrypt_ECC_FuncPtr InternalDecrypt_ECC;
-    const char * InternalDecrypt_ECC_FuncName;
 
     SDF_Encrypt_FuncPtr Encrypt;
-    const char * Encrypt_FuncName;
     SDF_Decrypt_FuncPtr Decrypt;
-    const char * Decrypt_FuncName;
     SDF_CalculateMAC_FuncPtr CalculateMAC;
-    const char * CalculateMAC_FuncName;
 
     SDF_HashInit_FuncPtr HashInit;
-    const char * HashInit_FuncName;
     SDF_HashUpdate_FuncPtr HashUpdate;
-    const char * HashUpdate_FuncName;
     SDF_HashFinal_FuncPtr HashFinal;
-    const char * HashFinal_FuncName;
 
     SDF_CreateObject_FuncPtr CreateObject;
-    const char * CreateObject_FuncName;
     SDF_ReadObject_FuncPtr ReadObject;
-    const char * ReadObject_FuncName;
     SDF_WriteObject_FuncPtr WriteObject;
-    const char * WriteObject_FuncName;
     SDF_DeleteObject_FuncPtr DeleteObject;
-    const char * DeleteObject_FuncName;
 } SDF_METHOD;
 
 #endif
