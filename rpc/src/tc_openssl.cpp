@@ -317,6 +317,75 @@ shared_ptr<TC_OpenSSL::CTX> TC_OpenSSL::newCtx(const std::string& cafile, const 
 	return std::make_shared<TC_OpenSSL::CTX>(ctx);
 }
 
+shared_ptr<TC_OpenSSL::CTX> TC_OpenSSL::newCtx(const std::string &cafile,
+                                               const std::string &certfileSign, const std::string &keyfileSign,
+                                               const std::string &certfileEnc, const std::string &keyfileEnc,
+                                               bool isRsa, bool verifyClient, const string &ciphers)
+{
+    initialize();
+
+    SSL_CTX *ctx = NULL;
+    if(isRsa)
+    {
+        ctx = SSL_CTX_new(SSLv23_method());
+    }
+    else
+    {
+        ctx = SSL_CTX_new(GMTLS_method());
+    }
+    if (!ctx)
+        return NULL;
+
+#define RETURN_IF_FAIL(call)         \
+    if ((call) <= 0)                 \
+    {                                \
+        ERR_print_errors_fp(stderr); \
+        return NULL;                 \
+    }
+
+    int mode = SSL_VERIFY_NONE;
+    if (verifyClient)
+        mode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+    if (!cafile.empty())
+        mode |= SSL_VERIFY_PEER;
+
+    SSL_CTX_set_verify(ctx, mode, NULL);
+
+    SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
+    // SSL_CTX_clear_options(ctx, SSL_OP_LEGACY_SERVER_CONNECT);
+    // SSL_CTX_clear_options(ctx, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+
+    RETURN_IF_FAIL(SSL_CTX_set_session_id_context(ctx, (const unsigned char *)ctx, sizeof ctx));
+    if (!cafile.empty())
+        RETURN_IF_FAIL(SSL_CTX_load_verify_locations(ctx, cafile.data(), NULL));
+
+    // 客户端可以不提供证书的
+    if (!certfileSign.empty())
+        RETURN_IF_FAIL(SSL_CTX_use_certificate_file(ctx, certfileSign.data(), SSL_FILETYPE_PEM));
+
+    if (!keyfileSign.empty())
+    {
+        RETURN_IF_FAIL(SSL_CTX_use_PrivateKey_file(ctx, keyfileSign.data(), SSL_FILETYPE_PEM));
+        RETURN_IF_FAIL(SSL_CTX_check_private_key(ctx));
+    }
+
+    if (!certfileEnc.empty())
+        RETURN_IF_FAIL(SSL_CTX_use_certificate_file(ctx, certfileEnc.data(), SSL_FILETYPE_PEM));
+
+    if (!keyfileEnc.empty())
+    {
+        RETURN_IF_FAIL(SSL_CTX_use_PrivateKey_file(ctx, keyfileEnc.data(), SSL_FILETYPE_PEM));
+        RETURN_IF_FAIL(SSL_CTX_check_private_key(ctx));
+    }
+
+    if (!ciphers.empty())
+    {
+        RETURN_IF_FAIL(SSL_CTX_set_cipher_list(ctx, ciphers.c_str()));
+    }
+#undef RETURN_IF_FAIL
+
+    return std::make_shared<TC_OpenSSL::CTX>(ctx);
+}
 
 shared_ptr<TC_OpenSSL> TC_OpenSSL::newSSL(const std::shared_ptr<TC_OpenSSL::CTX> &ctx)
 {

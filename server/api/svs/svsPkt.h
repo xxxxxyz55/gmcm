@@ -1,0 +1,28 @@
+#ifndef _GMCM_SVS_PKT_H_
+#define _GMCM_SVS_PKT_H_
+#include "pjst.h"
+
+using namespace pjst;
+
+PJST_FIELD_BEGIN(reqGenerateRandom, "")
+PJST_FIELD_ADD_REQ(length, PJST_NUM, 1, NULL)
+PJST_FIELD_END(reqGenerateRandom)
+
+PJST_FIELD_BEGIN(reqSvsGenKey, "")
+PJST_FIELD_ADD_REQ(type, PJST_STRING, 1, NULL)
+PJST_FIELD_ADD_REQ(bits, PJST_NUM, 0, NULL)
+PJST_FIELD_END(reqSvsGenKey)
+
+PJST_FIELD_BEGIN(reqSvsGenCsr, "")
+PJST_FIELD_ADD_REQ(prikey, PJST_STRING, 1, NULL)
+PJST_FIELD_ADD_REQ(subj, PJST_STRING, 1, NULL)
+PJST_FIELD_END(reqSvsGenCsr)
+
+PJST_FIELD_BEGIN(reqSvsSignCert, "")
+PJST_FIELD_ADD_REQ(csr, PJST_STRING, 1, NULL)
+PJST_FIELD_ADD_REQ(caCert, PJST_STRING, 0, NULL)
+PJST_FIELD_ADD_REQ(caKey, PJST_STRING, 1, NULL)
+PJST_FIELD_ADD_REQ(usage, PJST_STRING, 1, NULL)
+PJST_FIELD_END(reqSvsSignCert)
+
+#endif

@@ -31,6 +31,8 @@
 #include <sstream>
 #include <cassert>
 #include <vector>
+#include "util/tc_platform.h"
+#include "util/tc_openssl.h"
 
 namespace tars
 {
@@ -1593,6 +1595,10 @@ public:
      *               <0 failed, see TC_ClientSocket statement for value
      */
     int doRequest(TC_HttpResponse &stHttpRep, int iTimeout = 3000);
+    /**
+     * gmtls时 ctx不能为NULL 
+     */
+    int doRequest(TC_HttpResponse &stHttpRep, int iTimeout, shared_ptr<TC_OpenSSL::CTX> ctx);
 
     /**
      * 复用socket
@@ -1771,14 +1777,15 @@ protected:
 	 * @return
 	 */
 	int doRequest(const string &sendBuffer, TC_TCPClient &tcpClient, TC_HttpResponse &stHttpRep);
+    int doRequest(const string &sendBuffer, TC_TCPClient &tcpClient, TC_HttpResponse &stHttpRep, shared_ptr<TC_OpenSSL::CTX> ctx);
 
-protected:
+        protected :
 
-    /**
+        /**
      * 请求URL
      * Request URL
      */
-    TC_URL             _httpURL;
+        TC_URL _httpURL;
 
     /**
      * 请求类型

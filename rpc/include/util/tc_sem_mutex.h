@@ -25,7 +25,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #endif
-
+#include "util/tc_ex.h"
 #include "util/tc_lock.h"
 
 namespace tars

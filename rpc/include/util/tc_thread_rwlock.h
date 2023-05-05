@@ -37,9 +37,9 @@ namespace tars
 
 /////////////////////////////////////////////////
 
-class UTIL_DLL_API TC_ThreadRWLocker
-{
-protected:
+// class TC_ThreadRWLocker
+// {
+// protected:
 
 	class TC_SharedMutex
 	{
@@ -133,66 +133,84 @@ protected:
 		}
 	};
 
-public:
-	/**
-     * @brief 构造函数
-     */
-	TC_ThreadRWLocker();
+// public:
+// 	/**
+//      * @brief 构造函数
+//      */
+//     TC_ThreadRWLocker() {}
 
-    /**
-     * @brief 析够函数
-     */
-	~TC_ThreadRWLocker();
+//     /**
+//      * @brief 析够函数
+//      */
+//     ~TC_ThreadRWLocker() {}
 
-	/**
-	 *@brief 读锁定
-	 *return : 
-	 */
-	void readLock() const;
+//     /**
+//      *@brief 读锁定
+//      *return :
+//      */
+//     void readLock() const
+//     {
+//         _mutex.readLock();
+//     }
 
-	/**
-	 *@brief 写锁定,
-	 *return : 失败
-	 */
-	void writeLock() const;
+//     /**
+// 	 *@brief 写锁定,
+// 	 *return : 失败
+// 	 */
+// 	void writeLock() const
+//     {
+//         _mutex.writeLock();
+//     }
 
-	/**
-	 *@brief 尝试读锁定,
-	 *return : 
-	 */
-	bool tryReadLock() const;
+// 	/**
+// 	 *@brief 尝试读锁定,
+// 	 *return : 
+// 	 */
+// 	bool tryReadLock() const
+//     {
+//         return _mutex.tryReadLock();
+//     }
 
-	/**
-	 *@brief 尝试写锁定,
-	 *return : 
-	 */
-	bool tryWriteLock() const ;
+//     /**
+// 	 *@brief 尝试写锁定,
+// 	 *return : 
+// 	 */
+// 	bool tryWriteLock() const
+//     {
+//         return _mutex.tryWriteLock();
+//     }
 
-	/**
-	 *@brief 解锁
-	 *return : 
-	 */
-	void unReadLock() const;
+//     /**
+// 	 *@brief 解锁
+// 	 *return : 
+// 	 */
+//     void unReadLock() const
+//     {
+//         _mutex.unReadLock();
+//     }
 
-	/**
-	 *@brief 解锁
-	 *return : 
-	 */	
-	void unWriteLock() const;
+//     /**
+// 	 *@brief 解锁
+// 	 *return : 
+// 	 */	
+// 	void unWriteLock() const
+//     {
+//         _mutex.unWriteLock();
+//     }
 
-private:
+// private:
 
-	// mutable pthread_rwlock_t m_sect;
+// 	// mutable pthread_rwlock_t m_sect;
 
-	mutable TC_SharedMutex _mutex;
-	// noncopyable
-	TC_ThreadRWLocker(const TC_ThreadRWLocker&);
-	TC_ThreadRWLocker& operator=(const TC_ThreadRWLocker&);
+// 	mutable TC_SharedMutex _mutex;
+// 	// noncopyable
+// 	TC_ThreadRWLocker(const TC_ThreadRWLocker&);
+// 	TC_ThreadRWLocker& operator=(const TC_ThreadRWLocker&);
 
-};
+// };
 
-typedef TC_RW_RLockT<TC_ThreadRWLocker> TC_ThreadRLock;
-typedef TC_RW_WLockT<TC_ThreadRWLocker> TC_ThreadWLock;
+// typedef TC_RW_RLockT<TC_ThreadRWLocker> TC_ThreadRLock;
+// typedef TC_RW_WLockT<TC_ThreadRWLocker> TC_ThreadWLock;
 
 }
 #endif

@@ -17,10 +17,11 @@
 #ifndef __TC_AUTOPTR_H
 #define __TC_AUTOPTR_H
 
-#include "util/tc_ex.h"
+// #include "util/tc_ex.h"
 #include "util/tc_platform.h"
 #include <atomic>
 #include <typeinfo> 
+#include <string>
 
 namespace tars
 {
@@ -29,11 +30,11 @@ namespace tars
 * @brief Null Pointer Exception
 * @brief 空指针异常
 */
-struct TC_AutoPtrNull_Exception : public TC_Exception
-{
-    TC_AutoPtrNull_Exception(const string &buffer) : TC_Exception(buffer){};
-    ~TC_AutoPtrNull_Exception() {};
-};
+// struct TC_AutoPtrNull_Exception : public TC_Exception
+// {
+//     TC_AutoPtrNull_Exception(const string &buffer) : TC_Exception(buffer){};
+//     ~TC_AutoPtrNull_Exception() {};
+// };
 
 /**
  * @brief Smart Pointer Base Class
@@ -428,7 +429,8 @@ public:
 template<typename T> inline void
 TC_AutoPtr<T>::throwNullHandleException() const
 {
-    throw TC_AutoPtrNull_Exception("autoptr null handle error![" + string(typeid(T).name()) +"]");
+    // throw TC_AutoPtrNull_Exception("autoptr null handle error![" + string(typeid(T).name()) +"]");
+    throw "autoptr null handle error![" + std::string(typeid(T).name()) +"]";
 }
 
 /**

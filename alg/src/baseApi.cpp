@@ -25,15 +25,6 @@ void openssl_err_stack()
     return;
 }
 
-int alg_random(unsigned int length, unsigned char *buf)
-{
-    if (RAND_bytes(buf, length) <= 0)
-    {
-        return -1;
-    }
-    return 0;
-}
-
 int alg_str_to_int(const char *alg)
 {
     int len = strlen(alg);
@@ -108,19 +99,12 @@ char *alg_pem_get_base64(char *alg)
 
 int alg_sm2_gen_pri(unsigned char * pri)
 {
-    int iRet = alg_random(32, pri);
-    if (iRet)
+    rand_bytes(pri, 32);
+    for (size_t i = 0; i < 8; i++)
     {
-        return iRet;
-    }
-    else
-    {
-        for (size_t i = 0; i < 8; i++)
+        if (*(unsigned int *)(pri + (i * 4)))
         {
-            if (*(unsigned int *)(pri + (i * 4)))
-            {
-                return 0;
-            }
+            return 0;
         }
     }
     return alg_sm2_gen_pri(pri);

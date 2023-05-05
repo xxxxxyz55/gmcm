@@ -20,7 +20,6 @@
 #include "util/tc_platform.h"
 #include "util/tc_socket.h"
 #include "util/tc_timer.h"
-// #include "util/tc_logger.h"
 #include <cassert>
 #include <unordered_set>
 #include <unordered_map>

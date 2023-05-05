@@ -1,39 +1,56 @@
 #ifndef _GMCM_GLOBAL_CLASS_H_
 #define _GMCM_GLOBAL_CLASS_H_
-
+#include <mutex>
 /*
 usage:
 1. 使用getGlobalClass 将一个类构建为全局类，该类无需使用glocalClass 
-
-2. 使用getGlobalClass 编写类的静态方法,调用方法时无需使用glocalClass
+2. 继承getGlobalClass
 
 */
 template <typename T>
-class globalClass : public T
+class globalClass
 {
 private:
-    globalClass(){};
-    ~globalClass(){};
+    static void atExit()
+    {
+        delete getGlobalClass();
+    }
 
 public:
-    /*
-    constructor 首次调用 getGlobalClass 会构造结构
-    destructor  flag = false 会析构
-    */
-    static globalClass *getGlobalClass(bool flag = true)
+    static T *getGlobalClass()
     {
-        static globalClass *_globalClass = NULL;
-        if (!_globalClass && flag)
+        static std::mutex _lock;
+        static T *_obj = NULL;
+        if (!_obj)
         {
-            _globalClass = new globalClass();
+            std::lock_guard<std::mutex> lock(_lock);
+            if (!_obj)
+            {
+                _obj = new T;
+                atexit(atExit);
+            }
         }
-        else if (!flag && _globalClass)
-        {
-            delete _globalClass;
-            _globalClass = NULL;
-        }
-        return _globalClass;
+        return _obj;
     }
 };
+
+#define DECLEAR_SIGLETON_TYPE(type) \
+    type *get_global_##type();
+
+#define DEFINE_SIGLETON_TYPE(type)      \
+    void free_global_##type()           \
+    {                                   \
+        delete get_global_##type();     \
+    }                                   \
+    type *get_global_##type()           \
+    {                                   \
+        static type *_obj = NULL;       \
+        if (!_obj)                      \
+        {                               \
+            _obj = new type;            \
+            atexit(free_global_##type); \
+        }                               \
+        return _obj;                    \
+    }
 
 #endif

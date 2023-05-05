@@ -56,7 +56,7 @@ public:
     }
     ~pstBuffer()
     {
-        delete field;
+        delete[] field;
     }
     void print()
     {
@@ -267,15 +267,15 @@ class pstPtrs : public pstFieldPtrsData, public pstFieldPtrsFunc
 {
 };
 
-#define PST_FIELD_BEGIN(name, decs)      \
-    class name : public pstFieldPtrsFunc \
-    {                                    \
-    public:                              \
-        const char *errField = NULL;     \
-        unsigned int fieldNum = (sizeof(name) - 16) / sizeof(pstFieldPtr);
+#define PST_FIELD_BEGIN(name, decs)           \
+    class name : public pst::pstFieldPtrsFunc \
+    {                                         \
+    public:                                   \
+        const char *errField = NULL;          \
+        unsigned int fieldNum = (sizeof(name) - 16) / sizeof(pst::pstFieldPtr);
 
 #define PST_FIELD_ADD(field, type, checkCb) \
-    pstFieldPtr field{#field, type, checkCb};
+    pst::pstFieldPtr field{#field, type, checkCb};
 
 #define PST_FIELD_END(name) \
     }                       \

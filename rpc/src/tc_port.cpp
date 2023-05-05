@@ -16,7 +16,6 @@
 
 #include "util/tc_port.h"
 #include "util/tc_common.h"
-#include "util/tc_logger.h"
 #include "util/tc_file.h"
 #include "util/tc_platform.h"
 #include <thread>

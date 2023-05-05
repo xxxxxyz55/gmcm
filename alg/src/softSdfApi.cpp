@@ -118,7 +118,8 @@ int SDF_GenerateRandom(void *hSessionHandle, SGD_UINT32 uiLength, SGD_UCHAR *puc
         return SDR_DATA_LENGTH;
     }
 
-    return alg_random(uiLength, pucRandom);
+    rand_bytes(pucRandom, uiLength);
+    return 0;
 }
 
 int SDF_GetPrivateKeyAccessRight(void *hSessionHandle, SGD_UINT32 uiKeyIndex, SGD_UCHAR *pucPassword, SGD_UINT32 uiPwdLength)

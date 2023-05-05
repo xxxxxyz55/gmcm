@@ -16,7 +16,6 @@
 
 #include "util/tc_coroutine.h"
 #include "util/tc_platform.h"
-#include "util/tc_logger.h"
 
 #if TARGET_PLATFORM_LINUX || TARGET_PLATFORM_IOS
 #include <fcntl.h>

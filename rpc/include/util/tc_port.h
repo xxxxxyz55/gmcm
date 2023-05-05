@@ -3,6 +3,7 @@
 
 #include "util/tc_platform.h"
 #include "util/tc_ex.h"
+#include "util/tc_timeprovider.h"
 
 #if TARGET_PLATFORM_LINUX || TARGET_PLATFORM_IOS
 

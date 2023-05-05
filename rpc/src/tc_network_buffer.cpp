@@ -16,7 +16,6 @@
 
 #include "util/tc_network_buffer.h"
 #include "util/tc_http.h"
-#include "util/tc_logger.h"
 #include <cmath>
 
 using namespace std;

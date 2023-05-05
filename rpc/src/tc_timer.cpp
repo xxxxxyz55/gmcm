@@ -15,7 +15,6 @@
  */
 
 #include "util/tc_timer.h"
-#include "util/tc_logger.h"
 
 namespace tars
 {

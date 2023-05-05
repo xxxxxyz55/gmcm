@@ -76,7 +76,8 @@ void TC_EpollServer::DataBuffer::insertRecvQueue(const shared_ptr<RecvContext> &
 	++_iRecvBufferSize;
 
 	getDataQueue(recv->fd())->push_back(recv);
-	// getDataQueue(recv->uid())->push_back(recv);
+    // std::cout << "data queue push " << _iRecvBufferSize << std::endl;
+    // getDataQueue(recv->uid())->push_back(recv);
     if(_schedulers[0] != NULL)
 	{
 		//存在调度器, 处于协程中
@@ -99,11 +100,12 @@ void TC_EpollServer::DataBuffer::insertRecvQueue(const deque<shared_ptr<RecvCont
 	}
 
 	_iRecvBufferSize += recv.size();
+    // std::cout << "data deque push " << _iRecvBufferSize << std::endl;
 
 	// getDataQueue(recv.back()->uid())->push_back(recv);
 	getDataQueue(recv.back()->fd())->push_back(recv);
 
-	if (_schedulers[0] != NULL)
+    if (_schedulers[0] != NULL)
 	{
 		//存在调度器, 处于协程中
 		if (isQueueMode())
@@ -126,12 +128,13 @@ bool TC_EpollServer::DataBuffer::pop(uint32_t handleIndex, shared_ptr<RecvContex
 {
 	bool bRet = getDataQueue(handleIndex)->pop_front(data);
 
-	if (!bRet)
+    if (!bRet)
 	{
 		return bRet;
 	}
 
 	--_iRecvBufferSize;
+    // std::cout << "data queue pop " << _iRecvBufferSize << std::endl;
 
 	return bRet;
 }
@@ -332,6 +335,7 @@ void TC_EpollServer::Handle::handleOnceThread()
 
 	while ((loop--) > 0 && _dataBuffer->pop(_handleIndex, data))
 	{
+        // printf("get data pkg\n");
 		try
 		{
 			//上报心跳
@@ -354,6 +358,7 @@ void TC_EpollServer::Handle::handleOnceThread()
 				handleTimeout(data);
 			} else
 			{
+                // printf("handle data\n");
 				handle(data);
 			}
 			handleCustomMessage(false);
@@ -787,8 +792,9 @@ TC_NetWorkBuffer::PACKET_TYPE TC_EpollServer::Connection::onParserCallback(TC_Ne
 void TC_EpollServer::Connection::onCompleteNetworkCallback(TC_Transceiver *trans)
 {
 	_pBindAdapter->insertRecvQueue(_recv);
+    // cout << "on complete net pkt " << _recv.size() << endl;
 
-	//收到完整包
+    //收到完整包
 	// insertRecvQueue(_recv);
 
 	_recv.clear();
@@ -1504,35 +1510,42 @@ void TC_EpollServer::BindAdapter::cancelListen()
 
 void TC_EpollServer::BindAdapter::insertRecvQueue(const shared_ptr<RecvContext> &recv, bool force)
 {
+    // printf("insert shared ptr ===\n");
 	int iRet = isOverloadorDiscard();
 
 	if (iRet == 0 || force) //未过载
 	{
+        // printf("insert no overload\n");
 		_dataBuffer->insertRecvQueue(recv);
 	}
 	else if (iRet == -1) //超过队列长度4/5，需要进行overload处理
 	{
+        // printf("insert overload\n");
 		recv->setOverload();
 
 		_dataBuffer->insertRecvQueue(recv);
 	}
 	else //接受队列满，需要丢弃
 	{
+        // printf("insert full\n");
 		_epollServer->error("[BindAdapter::insertRecvQueue] overload discard package");
 	}
 }
 
 void TC_EpollServer::BindAdapter::insertRecvQueue(const deque<shared_ptr<RecvContext>> &recv)
 {
+    // printf("insert deque ===\n");
 	int iRet = isOverloadorDiscard();
 
 	if (iRet == 0) //未过载
 	{
-		_dataBuffer->insertRecvQueue(recv);
+        // printf("insert deque no load ===\n");
+        _dataBuffer->insertRecvQueue(recv);
 	}
 	else if (iRet == -1) //超过队列长度4/5，需要进行overload处理
 	{
-		for(auto r : recv)
+        // printf("insert deque load ===\n");
+        for(auto r : recv)
 		{
 			r->setOverload();
 		}
@@ -1541,7 +1554,8 @@ void TC_EpollServer::BindAdapter::insertRecvQueue(const deque<shared_ptr<RecvCon
 	}
 	else //接受队列满，需要丢弃
 	{
-		_epollServer->error("[BindAdapter::insertRecvQueue] overload discard package");
+        // printf("insert deque full ===\n");
+        _epollServer->error("[BindAdapter::insertRecvQueue] overload discard package");
 	}
 }
 

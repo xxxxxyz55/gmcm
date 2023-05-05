@@ -10,7 +10,8 @@
 
 EXPORT_FUNC void openssl_err_stack();
 
-EXPORT_FUNC int alg_random(unsigned int length, unsigned char * buf);
+EXPORT_FUNC void rand_bytes(uint8_t *buf, uint32_t len);
+EXPORT_FUNC int rand_bytes_with_detec(uint8_t *buf, uint32_t len);
 
 EXPORT_FUNC int alg_str_to_int(const char *alg);
 EXPORT_FUNC char *alg_pem_get_base64(char *alg);
@@ -63,15 +64,16 @@ EXPORT_FUNC void alg_sm3_final(unsigned char *pSm3Ctx, unsigned char *hash);
 
 enum cert_usage
 {
-    USAGE_CA = 1, //
-    USAGE_SIGN,   //
-    USAGE_ENC,    //
-    USAGE_TLS,    //
-    USAGE_WEB,    //
-    USAGE_TSA,    //
-    USAGE_IPSEC,  //
-    USAGE_EMAIL,  //
-    USAGE_CARD,   //
+    USAGE_CA = 1,  //
+    USAGE_SIGN,    //
+    USAGE_ENC,     //
+    USAGE_TLS,     //
+    USAGE_TLS_ENC, //
+    USAGE_WEB,     //
+    USAGE_TSA,     //
+    USAGE_IPSEC,   //
+    USAGE_EMAIL,   //
+    USAGE_CARD,    //
 };
 
 EXPORT_FUNC int alg_pem_import_cert(const char *b64Cert, void **pCert);
@@ -100,6 +102,11 @@ EXPORT_FUNC void alg_free_key(void **pKey);
                     "extendedKeyUsage = serverAuth,clientAuth\n" \
                     "keyUsage = digitalSignature,keyAgreement\n" \
                     "basicConstraints = CA:FALSE\n"
+
+#define CNF_TLS_ENC_REQ "[ v3_req ]\n"                               \
+                        "extendedKeyUsage = serverAuth,clientAuth\n" \
+                        "keyUsage = keyEncipherment\n"               \
+                        "basicConstraints = CA:FALSE\n"
 
 #define CNF_WEB_REQ "[ v3_req ]\n"                                                                               \
                     "extendedKeyUsage = serverAuth,clientAuth\n"                                                 \
@@ -145,5 +152,41 @@ EXPORT_FUNC void *alg_tls_ctx_init(int isClient,
 EXPORT_FUNC void alg_tls_free(void **ctx);
 EXPORT_FUNC int alg_tls_ctx_add_ca(void *ctx, char *caPem);
 EXPORT_FUNC int alg_tls_ctx_add_ca_dir(void *ctx, const char *dir);
+
+/**
+ * data             数据
+ * signdata         签名数据
+ * envelope         加密 密文带密钥
+ * sign_envelope    带签名 数字信封
+ * digest           摘要 带原文
+ * encrypt          加密 不带密钥
+ */
+typedef struct pkcs7_meth_t
+{
+
+}pkcs7_meth;
+
+EXPORT_FUNC int alg_pkcs7_signdata(pkcs7_meth *pMeth, char *b64P7, char *b64Data,
+                                   void *key, void *cert, unsigned int alg);
+EXPORT_FUNC int alg_pkcs7_verify_signdata(pkcs7_meth *pMeth, char *p7);
+
+EXPORT_FUNC int alg_pkcs7_signdata_detached(pkcs7_meth *pMeth, char *b64P7, char *b64Data,
+                                            void *key, void *cert, unsigned int alg);
+EXPORT_FUNC int alg_pkcs7_verify_signdata_detached(pkcs7_meth *pMeth, char *p7, char *b64Data);
+
+EXPORT_FUNC int alg_pkcs7_enveloped(pkcs7_meth *pMeth, char *p7, char *b64Data,
+                                    void *cert, unsigned int alg);
+EXPORT_FUNC int alg_pkcs7_unpack_enveloped(pkcs7_meth *pMeth, char *p7, char *b64Data,
+                                           void *key);
+
+EXPORT_FUNC int alg_pkcs7_sign_envloped(pkcs7_meth *pMeth, char *p7, char *b64Data,
+                                        void *signCert, void *signKey, void *encCert,
+                                        unsigned int alg);
+
+EXPORT_FUNC int alg_pkcs7_unpack_sign_envloped(pkcs7_meth *pMeth, char *p7, char *b64Data,
+                                               void *encKey, unsigned int alg);
+
+EXPORT_FUNC int alg_pkcs7_encrypt(pkcs7_meth *pMeth, char *p7, char *b64Data, char *b64Cipher, void * cert);
+EXPORT_FUNC int alg_pkcs7_unpack_encrypt(pkcs7_meth *pMeth, char *p7, char *b64Data, char *b64Cipher, void *key);
 
 #endif

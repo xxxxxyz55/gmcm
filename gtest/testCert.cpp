@@ -4,6 +4,7 @@
 
 #define ALG_LOG_DEBUG(fmt, ...) fprintf(stdout, fmt "[%s:%d:%s]\n", ##__VA_ARGS__, __FILE__, __LINE__, __FUNCTION__);
 #define ALG_LOG_ERROR(fmt, ...) fprintf(stderr, fmt "[%s:%d:%s]\n", ##__VA_ARGS__, __FILE__, __LINE__, __FUNCTION__);
+using namespace std;
 
 #define TEST_API(x)                            \
     do                                         \

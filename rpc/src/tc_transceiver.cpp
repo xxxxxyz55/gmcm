@@ -1,5 +1,4 @@
 ﻿#include "util/tc_transceiver.h"
-#include "util/tc_logger.h"
 #if TARS_SSL
 #include "util/tc_openssl.h"
 #endif
@@ -189,6 +188,7 @@ void TC_Transceiver::initializeServer(const onclose_callback& onclose,
 		{
 			THROW_ERROR(TC_Transceiver_Exception, CR_SSL_HANDSHAKE, "[TC_Transceiver::initializeServer create '" + _desc + "' ssl client error: " + _openssl->getErrMsg() + "]");
 		}
+        
 
 		// send the encrypt data from write buffer
 		if (!_sendBuffer.empty())

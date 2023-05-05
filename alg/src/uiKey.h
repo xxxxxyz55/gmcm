@@ -2,14 +2,17 @@
 #define _GMCM_UIKEY_H_
 
 #include "utilFunc.h"
-#include "concurrentqueue.h"
+// #include "concurrentqueue.h"
 #include <mutex>
 #include "gmcmalgConf.h"
 #include <atomic>
 #include "eventWait.h"
+#include "util/tc_cas_queue.h"
+#include "util/tc_thread_rwlock.h"
 
 using namespace std;
-using namespace moodycamel;
+using namespace tars;
+// using namespace moodycamel;
 
 #define MAX_UIKEY_NUM 1024*16
 
@@ -25,9 +28,11 @@ class EXPORT_FUNC uiKeyArray
 {
 private:
     uikey * keyArrayUsing[MAX_UIKEY_NUM];
-    rwlock _lock;
+    // rwlock _lock;
+    TC_SharedMutex _lock;
 
-    ConcurrentQueue<uikey*> keyQueueIdle;
+    // ConcurrentQueue<uikey*> keyQueueIdle;
+    TC_CasQueue<uikey*> keyQueueIdle;
 
     std::thread *ukeyTimeoutThread = NULL;
     eventWait ukeyTimeouThreadExit;

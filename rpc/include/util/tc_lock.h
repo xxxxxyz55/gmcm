@@ -20,7 +20,7 @@
 #include <string>
 #include <stdexcept>
 #include <cerrno>
-#include "util/tc_ex.h"
+// #include "util/tc_ex.h"
 
 using namespace std;
 
@@ -39,11 +39,11 @@ namespace tars
 * @brief  锁异常
 * @brief  Lock exception
 */
-struct TC_Lock_Exception : public TC_Exception
-{
-    TC_Lock_Exception(const string &buffer) : TC_Exception(buffer){};
-    ~TC_Lock_Exception() throw() {};
-};
+// struct TC_Lock_Exception : public TC_Exception
+// {
+//     TC_Lock_Exception(const string &buffer) : TC_Exception(buffer){};
+//     ~TC_Lock_Exception() throw() {};
+// };
 
 /**
  * @brief  锁模板类其他具体锁配合使用，
@@ -89,7 +89,8 @@ public:
     {
         if (_acquired)
         {
-            throw TC_Lock_Exception("thread has locked!");
+            // throw TC_Lock_Exception("thread has locked!");
+            throw "thread has locked!";
         }
         _mutex.lock();
         _acquired = true;
@@ -116,7 +117,8 @@ public:
     {
         if (!_acquired)
         {
-            throw TC_Lock_Exception("thread hasn't been locked!");
+            // throw TC_Lock_Exception("thread hasn't been locked!");
+            throw "thread hasn't been locked!";
         }
         _mutex.unlock();
         _acquired = false;

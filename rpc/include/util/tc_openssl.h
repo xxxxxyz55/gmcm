@@ -77,18 +77,22 @@ public:
      */
 	static shared_ptr<CTX> newCtx(const std::string& cafile, const std::string& certfile, const std::string& keyfile, bool verifyClient, const string &ciphers);
 
-	/**
+    static shared_ptr<TC_OpenSSL::CTX> newCtx(const std::string &cafile,
+                                              const std::string &certfileSign, const std::string &keyfileSign,
+                                              const std::string &certfileEnc, const std::string &keyfileEnc,
+                                              bool isRsa, bool verifyClient, const string &ciphers);
+    /**
 	 * new ssl
 	 * @param ctx
 	 * @return
 	 */
-	static shared_ptr<TC_OpenSSL> newSSL(const std::shared_ptr<TC_OpenSSL::CTX> &ctx);
+    static shared_ptr<TC_OpenSSL> newSSL(const std::shared_ptr<TC_OpenSSL::CTX> &ctx);
 
-	static void getMemData(BIO* bio, TC_NetWorkBuffer& buf);
-	static int doSSLRead(SSL* ssl, TC_NetWorkBuffer& out);
+    static void getMemData(BIO *bio, TC_NetWorkBuffer &buf);
+    static int doSSLRead(SSL *ssl, TC_NetWorkBuffer &out);
 
 protected:
-   /**
+    /**
     * @brief deny
     */
     TC_OpenSSL(const TC_OpenSSL& );

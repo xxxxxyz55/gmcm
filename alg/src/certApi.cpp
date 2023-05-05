@@ -583,6 +583,16 @@ int cert_set_usage_ext(X509 *x509, X509 *pCa, cert_usage usage)
         *pSite = '\0';
         snprintf(sConf, sizeof(sConf), "%ssubjectAltName = DNS:%s\n%s", CNF_TLS_REQ, site, CNF_POLSECT);
         break;
+    case USAGE_TLS_ENC:
+        x509_name_format(X509_get_subject_name(x509), subj);
+        for (char *p = strstr(subj, "CN=") + 3; p != NULL && *p != '\0' && *p != '/'; p++)
+        {
+            *pSite = *p;
+            pSite++;
+        }
+        *pSite = '\0';
+        snprintf(sConf, sizeof(sConf), "%ssubjectAltName = DNS:%s\n%s", CNF_TLS_ENC_REQ, site, CNF_POLSECT);
+        break;
     case USAGE_TSA:
         snprintf(sConf, sizeof(sConf), "%s%s", CNF_TSA_REQ, CNF_POLSECT);
         break;

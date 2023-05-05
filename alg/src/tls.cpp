@@ -155,6 +155,15 @@ int alg_tls_ctx_add_ca_dir(void *ctx, const char *dir)
         }
     }
 
+    if (entList)
+    {
+        for (size_t i = 0; i < fileNum; i++)
+        {
+            free(entList[i]);
+        }
+        free(entList);
+    }
+
     return GMCM_OK;
 }
 

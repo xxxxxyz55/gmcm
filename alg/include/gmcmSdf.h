@@ -17,28 +17,76 @@ typedef uint32_t SGD_RV;
 typedef void *SGD_OBJ;
 typedef int32_t SGD_BOOL;
 
-#define SGD_ECB         0x01
-#define SGD_CBC         0x02
-#define SGD_CFB         0x04
-#define SGD_OFB         0x08
-#define SGD_MAC         0x10
+#define SGD_ECB             0x01
+#define SGD_CBC             0x02
+#define SGD_CFB             0x04
+#define SGD_OFB             0x08
+#define SGD_MAC             0x10
+#define SGD_CTR             0x20
 
-#define SGD_SM1			0x00000100
-#define SGD_SM4			0x00000400
+#define SGD_SYM_PAD         0x20//带填充
 
-#define SGD_SYM_PAD     0x20
-
+#define SGD_SM1             0x00000100
 #define SGD_SM1_ECB         (SGD_SM1|SGD_ECB)
 #define SGD_SM1_CBC         (SGD_SM1|SGD_CBC)
 #define SGD_SM1_CFB         (SGD_SM1|SGD_CFB)
 #define SGD_SM1_OFB         (SGD_SM1|SGD_OFB)
 #define SGD_SM1_MAC         (SGD_SM1|SGD_MAC)
 
+#define SGD_SM4             0x00000400
 #define SGD_SM4_ECB         (SGD_SM4|SGD_ECB)
 #define SGD_SM4_CBC         (SGD_SM4|SGD_CBC)
 #define SGD_SM4_CFB         (SGD_SM4|SGD_CFB)
 #define SGD_SM4_OFB         (SGD_SM4|SGD_OFB)
 #define SGD_SM4_MAC         (SGD_SM4|SGD_MAC)
+
+#define SGD_2DES            0x00001000
+#define SGD_2DES_ECB        (SGD_2DES|SGD_ECB)
+#define SGD_2DES_CBC        (SGD_2DES|SGD_CBC)
+#define SGD_2DES_CFB        (SGD_2DES|SGD_CFB)
+#define SGD_2DES_OFB        (SGD_2DES|SGD_OFB)
+#define SGD_2DES_MAC        (SGD_2DES|SGD_MAC)
+#define SGD_2DES_CTR        (SGD_2DES|SGD_CTR)
+
+#define SGD_3DES            0x00000800
+#define SGD_3DES_ECB        (SGD_3DES|SGD_ECB)
+#define SGD_3DES_CBC        (SGD_3DES|SGD_CBC)
+#define SGD_3DES_CFB        (SGD_3DES|SGD_CFB)
+#define SGD_3DES_OFB        (SGD_3DES|SGD_OFB)
+#define SGD_3DES_MAC        (SGD_3DES|SGD_MAC)
+#define SGD_3DES_CTR        (SGD_3DES|SGD_CTR)
+
+#define SGD_DES             0x00004000
+#define SGD_DES_ECB         (SGD_DES|SGD_ECB)
+#define SGD_DES_CBC         (SGD_DES|SGD_CBC)
+#define SGD_DES_CFB         (SGD_DES|SGD_CFB)
+#define SGD_DES_OFB         (SGD_DES|SGD_OFB)
+#define SGD_DES_MAC         (SGD_DES|SGD_MAC)
+#define SGD_DES_CTR         (SGD_DES|SGD_CTR)
+
+#define SGD_AES             0x00008000
+#define SGD_AES_ECB         (SGD_AES|SGD_ECB)
+#define SGD_AES_CBC         (SGD_AES|SGD_CBC)
+#define SGD_AES_CFB         (SGD_AES|SGD_CFB)
+#define SGD_AES_OFB         (SGD_AES|SGD_OFB)
+#define SGD_AES_MAC         (SGD_AES|SGD_MAC)
+#define SGD_AES_CTR         (SGD_AES|SGD_CTR)
+
+#define SGD_AES192          0x00010000
+#define SGD_AES192_ECB      (SGD_AES192|SGD_ECB)
+#define SGD_AES192_CBC      (SGD_AES192|SGD_CBC)
+#define SGD_AES192_CFB      (SGD_AES192|SGD_CFB)
+#define SGD_AES192_OFB      (SGD_AES192|SGD_OFB)
+#define SGD_AES192_MAC      (SGD_AES192|SGD_MAC)
+#define SGD_AES192_CTR      (SGD_AES192|SGD_CTR)
+
+#define SGD_AES256          0x00020000
+#define SGD_AES256_ECB      (SGD_AES256|SGD_ECB)
+#define SGD_AES256_CBC      (SGD_AES256|SGD_CBC)
+#define SGD_AES256_CFB      (SGD_AES256|SGD_CFB)
+#define SGD_AES256_OFB      (SGD_AES256|SGD_OFB)
+#define SGD_AES256_MAC      (SGD_AES256|SGD_MAC)
+#define SGD_AES256_CTR      (SGD_AES256|SGD_CTR)
 
 /* public key usage */
 #define SGD_PK_SIGN         0x0100

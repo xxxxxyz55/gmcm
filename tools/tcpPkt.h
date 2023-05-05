@@ -5,12 +5,9 @@
 #include <string.h>
 #include "pst.h"
 
-using namespace std;
-using namespace pst;
-
 
 PST_FIELD_BEGIN(respErr, "")
-PST_FIELD_ADD(iRet, PST_U_INT, NULL)
+PST_FIELD_ADD(iRet, pst::PST_U_INT, NULL)
 PST_FIELD_END(respErr)
 
 /*
@@ -42,7 +39,7 @@ private:
     unsigned char *req; 
     unsigned int reqLen;
     char cmd[CMD_LEN + 1];//指令
-    pstBuffer baseBuf;
+    pst::pstBuffer baseBuf;
     FUNC_PTR_SEND_CB _send;
 
 public:
@@ -129,7 +126,7 @@ public:
 
     unsigned char *getReq() { return req + 10; }
     unsigned int getReqLen() { return reqLen - 14; }
-    pstBuffer *getResp() { return &baseBuf; }
+    pst::pstBuffer *getResp() { return &baseBuf; }
     char *getCmd() { return cmd; }
 };
 
@@ -138,8 +135,8 @@ class tcpClientPkt
 private:
     unsigned char respStr[65537];
     unsigned int respStrLen;
-    pstBuffer reqBase;
-    pstBuffer respBase;
+    pst::pstBuffer reqBase;
+    pst::pstBuffer respBase;
     char cmd[CMD_LEN + 1];
     int iRet;
     FUNC_PTR_SEND_CB _send;
@@ -150,7 +147,7 @@ public:
     ~tcpClientPkt(){};
     void setSendFunc(FUNC_PTR_SEND_CB pSendCb) { _send = pSendCb; }
     void setRecvFunc(FUNC_PTR_RECV_CB pRecvCb) { _recv = pRecvCb; }
-    pstBuffer *getReqBase() { return &reqBase; }
+    pst::pstBuffer *getReqBase() { return &reqBase; }
     unsigned char *getRespStr() { return respStr + 10; }
     unsigned int getRespStrLen() { return respStrLen - 14; }
     int getError() { return iRet; }

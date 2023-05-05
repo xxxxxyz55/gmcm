@@ -23,7 +23,7 @@
 #include <vector>
 #include <assert.h>
 #include <stdio.h>
-
+#include "util/tc_ex.h"
 #include "util/tc_autoptr.h"
 
 using namespace std;

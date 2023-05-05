@@ -2153,38 +2153,51 @@ int TC_HttpRequest::sendNetBuffer(TC_NetWorkBuffer &in, TC_TCPClient &tcpClient)
 		in.moveHeader(data.second);
 	}
 
-	return TC_ClientSocket::EM_SUCCESS;
+    return TC_ClientSocket::EM_SUCCESS;
 }
 
 int TC_HttpRequest::doRequest(const string &sSendBuffer, TC_TCPClient &tcpClient, TC_HttpResponse &stHttpRsp)
 {
-	int iRet;
+    return doRequest(sSendBuffer, tcpClient, stHttpRsp, NULL);
+}
+
+int TC_HttpRequest::doRequest(const string &sSendBuffer, TC_TCPClient &tcpClient, TC_HttpResponse &stHttpRsp, shared_ptr<TC_OpenSSL::CTX> ctx)
+{
+    int iRet;
 
 #if TARS_SSL
-	shared_ptr<TC_OpenSSL> ssl;
-	TC_NetWorkBuffer in(NULL);
+        shared_ptr<TC_OpenSSL> ssl;
+        TC_NetWorkBuffer in(NULL);
 
 #endif
 
 	if(this->_httpURL._iURLType == TC_URL::HTTPS)
 	{
 #if TARS_SSL
-		static thread_local shared_ptr<TC_OpenSSL::CTX> ctx = TC_OpenSSL::newCtx("", "", "", false, "");
-//		static thread_local shared_ptr<TC_OpenSSL::CTX> ctx = TC_OpenSSL::newCtx("", string(CMAKE_SOURCE_DIR) + "/certs/client.crt", string(CMAKE_SOURCE_DIR) + "/certs/client.key", false, "");
-		ssl = TC_OpenSSL::newSSL(ctx);
+        if(ctx == NULL)
+        {
+             static thread_local shared_ptr<TC_OpenSSL::CTX> localCtx = TC_OpenSSL::newCtx("", "", "", false, "");
+            // static thread_local shared_ptr<TC_OpenSSL::CTX> ctx = TC_OpenSSL::newCtx("", string(CMAKE_SOURCE_DIR) + "/certs/client.crt", string(CMAKE_SOURCE_DIR) + "/certs/client.key", false, "");
+             ssl = TC_OpenSSL::newSSL(localCtx);
+        }
+        else
+        {
+            ssl = TC_OpenSSL::newSSL(ctx);
+        }
 
-		//握手包
+        //握手包
 		iRet = ssl->doHandshake(in);
 		if(iRet != 0)
 		{
-			return TC_ClientSocket::EM_HTTPS;
+            return TC_ClientSocket::EM_HTTPS;
 		}
 
-		iRet = sendNetBuffer(in, tcpClient);
-		if(iRet != TC_ClientSocket::EM_SUCCESS)
+        iRet = sendNetBuffer(in, tcpClient);
+        if(iRet != TC_ClientSocket::EM_SUCCESS)
 		{
 			return iRet;
 		}
+
 		//接收服务器的握手包
 		TC_NetWorkBuffer out(NULL);
 		while (true)
@@ -2218,7 +2231,7 @@ int TC_HttpRequest::doRequest(const string &sSendBuffer, TC_TCPClient &tcpClient
 			}
 		}
 
-		//获取加密数据
+        //获取加密数据
 		int ret = ssl->write(sSendBuffer.c_str(), sSendBuffer.length(), in);
 		if(ret != 0)
 		{
@@ -2302,34 +2315,37 @@ int TC_HttpRequest::doRequest(const string &sSendBuffer, TC_TCPClient &tcpClient
 	assert(true);
 
 	return 0;
-}
+    }
 
 int TC_HttpRequest::doRequest(TC_TCPClient& tcpClient, TC_HttpResponse& stHttpRsp)
 {
 	//只支持短连接模式
 	setConnection("close");
 
-	return doRequest(encode(), tcpClient, stHttpRsp);
+    return doRequest(encode(), tcpClient, stHttpRsp);
 }
 
 int TC_HttpRequest::doRequest(TC_HttpResponse &stHttpRsp, int iTimeout)
 {
-	//只支持短连接模式
-	setConnection("close");
-
-	string sSendBuffer = encode();
-
-	string sHost;
-	uint32_t iPort;
-
-	getHostPort(sHost, iPort);
-
-	TC_TCPClient tcpClient;
-	tcpClient.init(sHost, iPort, iTimeout);
-
-	return doRequest(encode(), tcpClient, stHttpRsp);
+    return doRequest(stHttpRsp, iTimeout, NULL);
 }
 
+int TC_HttpRequest::doRequest(TC_HttpResponse &stHttpRsp, int iTimeout, shared_ptr<TC_OpenSSL::CTX> ctx)
+{
+    //只支持短连接模式
+    setConnection("close");
+
+    string sSendBuffer = encode();
+
+    string sHost;
+    uint32_t iPort;
+
+    getHostPort(sHost, iPort);
+
+    TC_TCPClient tcpClient;
+    tcpClient.init(sHost, iPort, iTimeout);
+
+    return doRequest(encode(), tcpClient, stHttpRsp, ctx);
 }
 
-
+} // namespace tars

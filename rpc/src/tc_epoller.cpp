@@ -1,6 +1,5 @@
 ﻿#include "util/tc_epoller.h"
 #include "util/tc_timeprovider.h"
-// #include "util/tc_logger.h"
 #include <algorithm>
 
 #if TARGET_PLATFORM_WINDOWS
