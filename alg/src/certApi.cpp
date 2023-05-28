@@ -437,7 +437,7 @@ int alg_csr_gen_sm2(ECCrefPublicKey *pPub, ECCrefPrivateKey *pPri, char *subj, c
             BIO_free(bReq);
         }
     }
-
+    X509_REQ_free(pReq);
     EVP_PKEY_free(pKey);
     return iRet;
 }
@@ -485,7 +485,7 @@ int alg_csr_gen_rsa(RSArefPublicKey *pPub, RSArefPrivateKey *pPri, char *subj, c
             BIO_free(bReq);
         }
     }
-
+    X509_REQ_free(pReq);
     EVP_PKEY_free(pKey);
     return iRet;
 }

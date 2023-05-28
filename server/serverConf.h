@@ -23,7 +23,7 @@
     } while (0);
 
 // TLS
-#define GMCM_ENABLE_HTTPS 1
+#define GMCM_ENABLE_HTTPS 0
 //0 rsa
 //1 sm2
 //不存在则生成一套

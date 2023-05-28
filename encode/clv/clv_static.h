@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <functional>
+#include <string>
 
 #define PADINFO 0xFFFFFFFF
 #define CLV_ERR_LESS_IN_LEN     1
@@ -113,10 +114,8 @@ private:
     clv_field _ctx;
 
 protected:
-    static int32_t clv_send(clv_field *pctx, size_t size, uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len));
-    static int32_t clv_send_ex(clv_field *pctx, size_t size, uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len, void *param), void *param);
-    static int32_t clv_send_cxx(clv_field *pctx, size_t size, uint8_t *ext, std::function<int32_t(void *, uint16_t)> writeCb);
     static int32_t clv_mapping(clv_field *pctx, size_t size, uint8_t *str, uint16_t len, bool check = false);
+    static std::string getString(clv_field *pctx, size_t size, uint8_t *ext);
 
 public:
     static int32_t isCompleteClvPkt(uint8_t *str, uint16_t len);
@@ -155,24 +154,16 @@ public:
         {                        \
         }
 
-#define CLV_SEQ_END_REF(type)                                                                          \
-    int32_t send(uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len))                              \
-    {                                                                                                  \
-        return clv_obj::clv_send((clv_field *)this, sizeof(type), ext, writeCb);                       \
-    }                                                                                                  \
-    int32_t send_ex(uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len, void *param), void *param) \
-    {                                                                                                  \
-        return clv_obj::clv_send_ex((clv_field *)this, sizeof(type), ext, writeCb, param);             \
-    }                                                                                                  \
-    int32_t send(uint8_t *ext, std::function<int32_t(void *, uint16_t)> writeCb)                       \
-    {                                                                                                  \
-        return clv_obj::clv_send_cxx((clv_field *)this, sizeof(type), ext, writeCb);                   \
-    }                                                                                                  \
-    int32_t mapping(uint8_t *str, uint16_t len, bool check = false)                                    \
-    {                                                                                                  \
-        return clv_obj::clv_mapping((clv_field *)this, sizeof(type), str, len, check);                 \
-    }                                                                                                  \
-    }                                                                                                  \
+#define CLV_SEQ_END_REF(type)                                                          \
+    std::string tostring(uint8_t *ext)                                                 \
+    {                                                                                  \
+        return clv_obj::getString((clv_field *)this, sizeof(type), ext);               \
+    }                                                                                  \
+    int32_t mapping(uint8_t *str, uint16_t len, bool check = false)                    \
+    {                                                                                  \
+        return clv_obj::clv_mapping((clv_field *)this, sizeof(type), str, len, check); \
+    }                                                                                  \
+    }                                                                                  \
     ;
 
 #endif

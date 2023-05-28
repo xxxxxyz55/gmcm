@@ -1,28 +1,30 @@
 #ifndef _GMCM_SVS_PKT_H_
 #define _GMCM_SVS_PKT_H_
-#include "pjst.h"
+#include "../../encode/json/j2c.h"
 
-using namespace pjst;
+JSON_SEQ_REF(reqNULL)
+JSON_SEQ_END_REF(reqNULL)
 
-PJST_FIELD_BEGIN(reqGenerateRandom, "")
-PJST_FIELD_ADD_REQ(length, PJST_NUM, 1, NULL)
-PJST_FIELD_END(reqGenerateRandom)
+JSON_SEQ_REF(reqGenerateRandom)
+JSON_FIELD(length, jDouble, 1, NULL)
+JSON_SEQ_END_REF(reqGenerateRandom)
 
-PJST_FIELD_BEGIN(reqSvsGenKey, "")
-PJST_FIELD_ADD_REQ(type, PJST_STRING, 1, NULL)
-PJST_FIELD_ADD_REQ(bits, PJST_NUM, 0, NULL)
-PJST_FIELD_END(reqSvsGenKey)
 
-PJST_FIELD_BEGIN(reqSvsGenCsr, "")
-PJST_FIELD_ADD_REQ(prikey, PJST_STRING, 1, NULL)
-PJST_FIELD_ADD_REQ(subj, PJST_STRING, 1, NULL)
-PJST_FIELD_END(reqSvsGenCsr)
+JSON_SEQ_REF(reqSvsGenKey)
+JSON_FIELD(type, jString, 1, NULL)
+JSON_FIELD(bits, jDouble, 0, NULL)
+JSON_SEQ_END_REF(reqSvsGenKey)
 
-PJST_FIELD_BEGIN(reqSvsSignCert, "")
-PJST_FIELD_ADD_REQ(csr, PJST_STRING, 1, NULL)
-PJST_FIELD_ADD_REQ(caCert, PJST_STRING, 0, NULL)
-PJST_FIELD_ADD_REQ(caKey, PJST_STRING, 1, NULL)
-PJST_FIELD_ADD_REQ(usage, PJST_STRING, 1, NULL)
-PJST_FIELD_END(reqSvsSignCert)
+JSON_SEQ_REF(reqSvsGenCsr)
+JSON_FIELD(prikey, jString, 1, NULL)
+JSON_FIELD(subj, jString, 1, NULL)
+JSON_SEQ_END_REF(reqSvsGenCsr)
+
+JSON_SEQ_REF(reqSvsSignCert)
+JSON_FIELD(csr, jString, 1, NULL)
+JSON_FIELD(caCert, jString, 0, NULL)
+JSON_FIELD(caKey, jString, 1, NULL)
+JSON_FIELD(usage, jString, 1, NULL)
+JSON_SEQ_END_REF(reqSvsSignCert)
 
 #endif

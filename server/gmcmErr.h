@@ -56,6 +56,7 @@ enum
     GMCM_ERR_CERT_USAGE,
     GMCM_ERR_CERT,
     GMCM_ERR_SIGN_CERT,
+    GMCM_ERR_METHOD,
     GMCM_ERR_END,
 };
 
@@ -108,6 +109,7 @@ enum
             "invalied cert usage.",          \
             "invalied cert.",                \
             "sign cert fail.",               \
+            "invalied request method.",      \
     }
 
 inline const char *errGetReason(unsigned int err)

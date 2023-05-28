@@ -10,16 +10,16 @@ int main(int argc, char const *argv[])
     Gtest test;
     test.pushTest(perf_random, "perf random");
     test.pushTest(gen_128m, "gen 128m random");
-    test.run();
     return 0;
 }
 
-class RandomLoop: public Gtest::GtestLoop
+class RandomLoop: public GtestLoop
 {
 private:
-    void run(size_t id)
+    int run(size_t id)
     {
         rand_bytes_with_detec(buf, len);
+        return 0;
     }
 
 public:
@@ -32,7 +32,7 @@ void perf_random()
     RandomLoop loop;
     loop.setThreadNum(8);
     loop.setDataLength(loop.len);
-    Gtest::gtestLoopInMs(3000, &loop);
+    loop.loopFor();
 }
 
 #include <stdio.h>

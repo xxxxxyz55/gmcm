@@ -429,7 +429,7 @@ bool TC_Epoller::errorEvent(const epoll_event &ev)
         return true;
     }
 #else
-    if (ev.events & EPOLLERR || ev.events & EPOLLHUP)
+    if (ev.events & EPOLLERR || ev.events & EPOLLHUP || ev.events & EPOLLRDHUP)
     {
         return true;
     }

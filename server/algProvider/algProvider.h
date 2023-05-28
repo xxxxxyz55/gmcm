@@ -3,11 +3,9 @@
 
 #include <iostream>
 #include "sdf_ex.h"
-// #include "concurrentqueue.h"
 #include "util/tc_cas_queue.h"
 
 using namespace std;
-// using namespace moodycamel;
 using namespace tars;
 
 class dso
@@ -28,7 +26,6 @@ public:
 class sdfMeth
 {
 private:
-    // ConcurrentQueue<void *> pSessions;
     TC_CasQueue<void *> pSessions;
     void * pDevHandle = NULL;
     dso * pLib = NULL;

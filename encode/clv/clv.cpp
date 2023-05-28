@@ -135,7 +135,7 @@ clv_i32::~clv_i32()
 
 int32_t clv_obj::isCompleteClvPkt(uint8_t *str, uint16_t len)
 {
-    if (len < (sizeof(uint32_t) * 2 + EXT_LEN + sizeof(uint16_t)))
+    if (len < (sizeof(uint32_t) + EXT_LEN + sizeof(uint16_t)))
     {
         return CLV_ERR_PKT_UNCOMPLETE;
     }
@@ -145,17 +145,13 @@ int32_t clv_obj::isCompleteClvPkt(uint8_t *str, uint16_t len)
         return CLV_ERR_PKT_ERR;
     }
 
-    if(*(uint32_t *)(str + len - sizeof(uint32_t)) != PADINFO)
-    {
-        return CLV_ERR_PKT_UNCOMPLETE;
-    }
-
     uint16_t pktLen = *(uint16_t *)(str + sizeof(uint32_t) + EXT_LEN);
-    uint16_t tLen = len - (sizeof(uint32_t) * 2) - EXT_LEN - sizeof(uint16_t);
+    uint16_t tLen = len - sizeof(uint32_t) - EXT_LEN - sizeof(uint16_t);
     if (pktLen == tLen)
     {
         return 0;
     }
+
     if (pktLen > tLen)
     {
         return CLV_ERR_PKT_ERR;
@@ -187,28 +183,16 @@ uint16_t getTotalLen(clv_field * pctx, size_t size)
     return len;
 }
 
-int32_t clv_obj::clv_send(clv_field *pctx, size_t size, uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len))
+std::string clv_obj::getString(clv_field *pctx, size_t size, uint8_t *ext)
 {
-    int32_t ret;
-    static uint32_t pad = PADINFO;
-    ret = writeCb(&pad, sizeof(uint32_t));
-    if (ret)
-    {
-        return ret;
-    }
+    std::string str;
 
-    ret = writeCb(ext, EXT_LEN);
-    if (ret)
-    {
-        return ret;
-    }
+    static uint32_t pad = PADINFO;
+    str.append((char *)&pad, sizeof(uint32_t));
+    str.append((char *)ext, EXT_LEN);
 
     uint16_t total = getTotalLen(pctx, size);
-    ret = writeCb(&total, sizeof(uint16_t));
-    if (ret)
-    {
-        return ret;
-    }
+    str.append((char *)&total, sizeof(uint16_t));
 
     size_t fieldNum = size / sizeof(clv_field);
     auto iter = pctx;
@@ -216,129 +200,12 @@ int32_t clv_obj::clv_send(clv_field *pctx, size_t size, uint8_t *ext, int32_t (*
     {
         if (iter->_type != CLV_TYPE_OBJ)
         {
-            ret = writeCb(&iter->_len, sizeof(uint16_t));
-            if (ret)
-            {
-                return ret;
-            }
-            ret = writeCb(iter->_pVal, iter->_len);
-            if (ret)
-            {
-                return ret;
-            }
+            str.append((char *)&iter->_len, sizeof(uint16_t));
+            str.append((char *)iter->_pVal, iter->_len);
         }
     }
 
-    ret = writeCb(&pad, sizeof(uint32_t));
-    if (ret)
-    {
-        return ret;
-    }
-
-    return 0;
-}
-
-int32_t clv_obj::clv_send_ex(clv_field *pctx, size_t size, uint8_t *ext, int32_t (*writeCb)(void *buf, size_t len, void *param), void *param)
-{
-    int32_t ret;
-    static uint32_t pad = PADINFO;
-    ret = writeCb(&pad, sizeof(uint32_t), param);
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = writeCb(ext, EXT_LEN, param);
-    if (ret)
-    {
-        return ret;
-    }
-
-    uint16_t total = getTotalLen(pctx, size);
-    ret = writeCb(&total, sizeof(uint16_t), param);
-    if (ret)
-    {
-        return ret;
-    }
-
-    size_t fieldNum = size / sizeof(clv_field);
-    auto iter = pctx;
-    for (size_t i = 0; i < fieldNum; i++, iter++)
-    {
-        if (iter->_type != CLV_TYPE_OBJ)
-        {
-            ret = writeCb(&iter->_len, sizeof(uint16_t), param);
-            if (ret)
-            {
-                return ret;
-            }
-            ret = writeCb(iter->_pVal, iter->_len, param);
-            if (ret)
-            {
-                return ret;
-            }
-        }
-    }
-
-    ret = writeCb(&pad, sizeof(uint32_t), param);
-    if (ret)
-    {
-        return ret;
-    }
-
-    return 0;
-}
-
-int32_t clv_obj::clv_send_cxx(clv_field *pctx, size_t size, uint8_t *ext, std::function<int32_t(void *, uint16_t)> writeCb)
-{
-    int32_t ret;
-    static uint32_t pad = PADINFO;
-    ret = writeCb(&pad, sizeof(uint32_t));
-    if (ret)
-    {
-        return ret;
-    }
-
-    ret = writeCb(ext, EXT_LEN);
-    if (ret)
-    {
-        return ret;
-    }
-
-    uint16_t total = getTotalLen(pctx, size);
-    ret = writeCb(&total, sizeof(uint16_t));
-    if (ret)
-    {
-        return ret;
-    }
-
-    size_t fieldNum = size / sizeof(clv_field);
-    auto iter = pctx;
-    for (size_t i = 0; i < fieldNum; i++, iter++)
-    {
-        if (iter->_type != CLV_TYPE_OBJ)
-        {
-            ret = writeCb(&iter->_len, sizeof(uint16_t));
-            if (ret)
-            {
-                return ret;
-            }
-
-            ret = writeCb(iter->_pVal, iter->_len);
-            if (ret)
-            {
-                return ret;
-            }
-        }
-    }
-
-    ret = writeCb(&pad, sizeof(uint32_t));
-    if (ret)
-    {
-        return ret;
-    }
-
-    return 0;
+    return str;
 }
 
 static clv_parse func_parse[] = {

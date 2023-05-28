@@ -2,7 +2,7 @@
 #include "gmcmSdkClv.h"
 #include "../include/gmcmSdkApi.h"
 #include "../../server/gmcmErr.h"
-#include "../../server/api/hsm/hsmClvPkt.h"
+#include "../../server/api/hsm/hsmPkt.h"
 #include "utilFunc.h"
 
 using namespace std;
@@ -75,14 +75,14 @@ int32_t gmcmSdkSession::sendCb(void *data, uint16_t len)
 int32_t gmcmSdkSession::recvClv()
 {
     respStrLen = 0;
-    // 0xFFFFFFFF 4 ext 4 len 2 ... 0xFFFFFFFF 4
-    int ret = recvLength((char *)respStr, 14);
+    // 0xFFFFFFFF 4 ext 4 len 2 ...
+    int ret = recvLength((char *)respStr, 10);
     if (ret < 0)
     {
         SDK_LOG_ERROR("recv clv fail.");
         return ret;
     }
-    respStrLen += 14;
+    respStrLen += 10;
 
     int16_t *pTotalLen = (int16_t *)(respStr + 8);
     ret = recvLength((char *)respStr + respStrLen, *pTotalLen);
@@ -116,8 +116,9 @@ public:
     int sendRecv()
     {
         int32_t ret;
-        ret = req.send((uint8_t *)_cmd, std::bind(&gmcmSdkSession::sendCb, pSession, std::placeholders::_1, std::placeholders::_2));
-        if(ret)
+        string reqStr = req.tostring((uint8_t *)_cmd);
+        ret = pSession->send(reqStr.c_str(), reqStr.length());
+        if (ret)
         {
             SDK_LOG_ERROR("req send fail %d.", ret);
             return SDK_ERR_SEND;

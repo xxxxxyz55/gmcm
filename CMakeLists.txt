@@ -25,7 +25,7 @@ SET (flags "${debug} -Wall -O2 -rdynamic -funwind-tables  -fPIC -Wunused-variabl
 SET (STACK_PROTECTOR "-fstack-protector-strong -fstack-protector-all")
 SET (WARNNING "-Wall -Wformat -Werror=format-security -fexceptions")
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ${flags} ${STACK_PROTECTOR} ${WARNNING}")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${flags} ${STACK_PROTECTOR} ${WARNNING}")
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -60,7 +60,7 @@ target_include_directories(gmcmrpc PUBLIC rpc/include)
 target_include_directories(gmcmrpc PUBLIC external_include/openssl)
 target_link_libraries(gmcmrpc  pthread)
 target_link_libraries(gmcmrpc  c)
-target_link_libraries(gmcmrpc  m z)
+target_link_libraries(gmcmrpc  m)
 if(SSL)
 target_link_libraries(gmcmrpc dl ${gm_crypto} ${gm_ssl})
 endif()
@@ -144,15 +144,6 @@ add_executable(testUikey gtest/testUikey.cpp)
 target_include_directories(testUikey PUBLIC alg/include)
 target_link_libraries(testUikey gmcmalg)
 
-add_executable(testPst gtest/testPst.cpp)
-target_include_directories(testPst PUBLIC tools)
-
-add_executable(testPjst gtest/testPjst.cpp)
-target_include_directories(testPjst PUBLIC tools)
-target_include_directories(testPjst PUBLIC rpc/include)
-target_include_directories(testPjst PUBLIC external_include)
-target_link_libraries(testPjst gmcmrpc)
-
 add_executable(testSdf gtest/testSdf.cpp)
 target_include_directories(testSdf PUBLIC alg/include)
 target_include_directories(testSdf PUBLIC tools)
@@ -163,35 +154,31 @@ target_include_directories(testCert PUBLIC alg/include)
 target_include_directories(testCert PUBLIC tools)
 target_link_libraries(testCert gmcmalg)
 
-add_executable(testRpcLib gtest/testRpcLib.cpp)
-target_include_directories(testRpcLib PUBLIC rpc/include)
-target_link_libraries(testRpcLib gmcmrpc)
-
-add_executable(testOrm gtest/testOrm.cpp)
-target_include_directories(testOrm PUBLIC tools)
-
 add_executable(testRandom gtest/testRandom.cpp)
 target_include_directories(testRandom PUBLIC tools)
 target_include_directories(testRandom PUBLIC alg/include)
 target_link_libraries(testRandom gmcmalg)
-
-add_executable(testSafeQueue gtest/testSafeQueue.cpp)
-target_include_directories(testSafeQueue PUBLIC external_include)
-target_include_directories(testSafeQueue PUBLIC tools)
-target_include_directories(testSafeQueue PUBLIC rpc/include)
-target_link_libraries(testSafeQueue pthread)
 
 add_executable(testPerfConn gtest/testPerfConn.cpp)
 target_include_directories(testPerfConn PUBLIC tools)
 target_include_directories(testPerfConn PUBLIC encode)
 target_include_directories(testPerfConn PUBLIC external_include)
 target_include_directories(testPerfConn PUBLIC rpc/include)
-target_link_libraries(testPerfConn ${libhiredis} pthread gmcmrpc cjson gmcmencode)
+target_link_libraries(testPerfConn ${libhiredis} pthread gmcmrpc gmcmencode)
 
 add_executable(testClv gtest/testClv.cpp)
 target_include_directories(testClv PUBLIC tools)
 target_include_directories(testClv PUBLIC encode)
 target_link_libraries(testClv gmcmencode pthread )
+
+add_executable(testCase gtest/testCase.cpp)
+target_include_directories(testCase PUBLIC tools)
+target_include_directories(testCase PUBLIC rpc/include)
+target_link_libraries(testCase pthread gmcmrpc)
+
+add_executable(testEpoller gtest/testEpoller.cpp)
+target_include_directories(testEpoller PUBLIC rpc/include)
+target_link_libraries(testEpoller pthread gmcmrpc)
 
 file(GLOB sdk_src_file CONFIGURE_DEPENDS
     "client/sdk/*.cpp"

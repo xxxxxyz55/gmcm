@@ -28,6 +28,8 @@ void test_import_key_no_header();
 void test_gen_sm2_cert();
 void test_gen_rsa_cert();
 
+void test_big_num();
+
 int main(int argc, char const *argv[])
 {
     int choose = 0;
@@ -38,7 +40,8 @@ int main(int argc, char const *argv[])
                                        "3 test import cert no header\n"
                                        "4 test import key no header\n"
                                        "5 test gen sm2 cert\n"
-                                       "6 test gen sm2 cert\n");
+                                       "6 test gen sm2 cert\n"
+                                       "7 test big num\n");
     }
     else if (argc == 2)
     {
@@ -64,6 +67,9 @@ int main(int argc, char const *argv[])
         break;
     case 6:
         test_gen_rsa_cert();
+        break;
+    case 7:
+        test_big_num();
         break;
 
     default:
@@ -300,4 +306,40 @@ void test_gen_rsa_cert()
     char usrCert[8192];
     TEST_API(alg_csr_sign_cert_rsa(usrCsr, caCert, &rootPub, &rootPri, 3650, USAGE_TLS, NULL, 0, usrCert));
     cout << "usrCert :\n" << usrCert << endl;
+}
+
+#include "openssl/bn.h"
+
+# if defined(_WIN64) || !defined(__LP64__)
+#  define BN_ULONG unsigned long long
+# else
+#  define BN_ULONG unsigned long
+# endif
+
+struct bignum_st
+{
+    BN_ULONG *d; /* Pointer to an array of 'BN_BITS2' bit
+                  * chunks. */
+    int top;     /* Index of last used d +1. */
+    /* The next are internal book keeping for bn_expand. */
+    int dmax; /* Size of the d array. */
+    int neg;  /* one if the number is negative */
+    int flags;
+};
+
+void test_big_num()
+{
+    BIGNUM *bn =  BN_new();
+    BN_set_word(bn, 65537);
+    uint8_t bne[32];
+    uint32_t len;
+    len = BN_bn2bin(bn, bne);
+    utilTool::printHex(bne, len, "bn 65537");
+    uint32_t e = 65537;
+    utilTool::printHex((uint8_t *)&e, 4, "bin e");
+
+    uint8_t bin[16] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38};
+    utilTool::printHex(bin, sizeof(bin), "bin");
+    BIGNUM *bn_bin = BN_bin2bn(bin, sizeof(bin), NULL);
+    utilTool::printHex((uint8_t *)bn_bin->d, bn_bin->dmax * sizeof(BN_ULONG), "bn bin");
 }

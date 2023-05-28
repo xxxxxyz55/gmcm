@@ -200,6 +200,7 @@ class testStr1
 {
 private:
 public:
+    int32_t step;
     /* data */
     testStr1()
     {

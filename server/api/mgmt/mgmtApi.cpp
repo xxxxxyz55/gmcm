@@ -1,16 +1,14 @@
 #include "mgmtApi.h"
 #include "util/tc_http.h"
-#include "pjst.h"
+#include "mgmtPkt.h"
 
 using namespace tars;
-using namespace pjst;
 
-unsigned int mgmtHelpPage(TC_HttpRequest *request, TC_HttpResponse *response)
+void mgmtHelpPage(TC_HttpRequest *request, TC_HttpResponse *response)
 {
-    jsonResp jResp;
+    jsonPkt jResp;
     jResp.addRespField("random", "http://host:port/GenerateRandom");
-    response->setResponse(200, "OK", jResp.toResponseStr());
-    return GMCM_OK;
+    response->setResponse(200, "OK", jResp.toJsonStr());
 }
 
 vector<pair<string, mgmtApiFuncPtr>>  getMgmtApis()

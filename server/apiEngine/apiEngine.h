@@ -7,24 +7,43 @@
 #include <vector>
 #include "../tool/gmcmLog.h"
 #include "util/tc_http.h"
-#include "pst.h"
 
 template <typename T>
 class apiEngine
 {
 private:
-    map<std::string, T> apiMap;
+    map<std::string, T> _apiMap;
+    T _defCb = NULL;
 
 public:
     apiEngine()
     {
-        apiMap.clear();
     }
 
+    ~apiEngine()
+    {
+        _apiMap.clear();
+    }
+
+    // handle
+    T getApiFunc(string action)
+    {
+        try
+        {
+            return _apiMap.at(action);
+        }
+        catch (const std::exception &e)
+        {
+            return _defCb;
+        }
+    }
+
+protected:
     bool loadApi(std::pair<std::string, T> api)
     {
-        return apiMap.insert(api).second;
+        return _apiMap.insert(api).second;
     }
+
 
     void loadApis(std::vector<std::pair<std::string, T>> vtApi)
     {
@@ -41,36 +60,22 @@ public:
         }
     }
 
-    // handle
-    T getApiFunc(string action)
+    void setDefcb(T cb)
     {
-        try
-        {
-            return apiMap.at(action);
-        }
-        catch (const std::exception &e)
-        {
-            return NULL;
-        }
+        _defCb = cb;
     }
 
-    ~apiEngine()
-    {
-        apiMap.clear();
-    }
 };
 
-
-typedef unsigned int (*hsmApiClvFuncPtr)(unsigned char *req, unsigned int reqLen, std::function<int32_t(void *, uint16_t)> writeCb);
-class hsmApiClvEngine : public apiEngine<hsmApiClvFuncPtr>
+typedef string (*hsmApiFuncPtr)(unsigned char *req, unsigned int reqLen);
+class hsmApiEngine : public apiEngine<hsmApiFuncPtr>
 {
 public:
-    hsmApiClvEngine();
-    ~hsmApiClvEngine();
+    hsmApiEngine();
+    ~hsmApiEngine();
 };
 
-
-typedef unsigned int (*mgmtApiFuncPtr)(tars::TC_HttpRequest *request, tars::TC_HttpResponse *response);
+typedef void (*mgmtApiFuncPtr)(tars::TC_HttpRequest *request, tars::TC_HttpResponse *response);
 class mgmtApiEngine : public apiEngine<mgmtApiFuncPtr>
 {
 public:
@@ -78,7 +83,7 @@ public:
     ~mgmtApiEngine();
 };
 
-typedef unsigned int (*svsApiFuncPtr)(tars::TC_HttpRequest *request, tars::TC_HttpResponse *response);
+typedef void (*svsApiFuncPtr)(tars::TC_HttpRequest *request, tars::TC_HttpResponse *response);
 class svsApiEngine : public apiEngine<svsApiFuncPtr>
 {
 public:

@@ -3,18 +3,20 @@
 #include "../api/mgmt/mgmtApi.h"
 #include "../api/svs/svsApi.h"
 
-hsmApiClvEngine::hsmApiClvEngine()
+hsmApiEngine::hsmApiEngine()
 {
+    setDefcb(hsmDealError);
     loadApis(getHsmClvApis());
 }
 
-hsmApiClvEngine::~hsmApiClvEngine()
+hsmApiEngine::~hsmApiEngine()
 {
 
 }
 
 mgmtApiEngine::mgmtApiEngine() 
 {
+    setDefcb(SvsDealError);
     loadApis(getMgmtApis());
 }
 
@@ -24,6 +26,7 @@ mgmtApiEngine::~mgmtApiEngine()
 
 svsApiEngine::svsApiEngine()
 {
+    setDefcb(SvsDealError);
     loadApis(getSvsApis());
 }
 

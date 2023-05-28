@@ -2,7 +2,6 @@
 #define _GMCM_UIKEY_H_
 
 #include "utilFunc.h"
-// #include "concurrentqueue.h"
 #include <mutex>
 #include "gmcmalgConf.h"
 #include <atomic>
@@ -12,7 +11,6 @@
 
 using namespace std;
 using namespace tars;
-// using namespace moodycamel;
 
 #define MAX_UIKEY_NUM 1024*16
 

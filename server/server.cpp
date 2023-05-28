@@ -2,7 +2,7 @@
 #include <netinet/tcp.h>
 #include "server.h"
 #include "signal.h"
-#include "handle/hsmHandleClv.h"
+#include "handle/hsmHandle.h"
 #include "handle/svsHandle.h"
 #include "handle/mgmtHandle.h"
 #include "utilFunc.h"
@@ -45,10 +45,10 @@ int gmcmServer::init()
     // setThreadNum(sysconf(_SC_NPROCESSORS_CONF));//网络线程
 
     addService<mgmtHandle>(SERVICE_MGMT_API, "gmcm_mgmt_server", TC_NetWorkBuffer::parseHttp);
-    addService<gmcmHsmClvHandle>(SERVICE_SDK_API, "gmcm_tcp_server", parseGmcmClv);
+    addService<gmcmHsmHandle>(SERVICE_SDK_API, "gmcm_tcp_server", parseGmcmClv);
     addService<gmcmSvsHandle>(SERVICE_HTTP_API, "gmcm_http_server", TC_NetWorkBuffer::parseHttp);
 
-    globalClass<hsmApiClvEngine>::getGlobalClass();
+    globalClass<hsmApiEngine>::getGlobalClass();
     globalClass<svsApiEngine>::getGlobalClass();
     globalClass<mgmtApiEngine>::getGlobalClass();
 

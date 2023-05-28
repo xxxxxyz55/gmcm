@@ -2,6 +2,7 @@
 #include <iostream>
 #include "gmcmTime.h"
 #include <string.h>
+#include <functional>
 
 int uiKeyArray::deal_with_uikey_timeout_route(int uikey_timeout)
 {

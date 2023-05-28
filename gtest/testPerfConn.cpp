@@ -24,14 +24,13 @@ int main(int argc, char const *argv[])
     tests.pushTest(test_virtual1, "test vir 2");
     tests.pushTest(test_jstruct_speed, "test json speed");
     tests.pushTest(test_return_str, "test return str");
-    tests.run();
 
     return 0;
 }
 
-class TestRedisConn : public Gtest::GtestLoop
+class TestRedisConn : public GtestLoop
 {
-    void run(size_t id)
+    int run(size_t id)
     {
         redisContext *pContext = NULL;
         timeval tv;
@@ -41,10 +40,12 @@ class TestRedisConn : public Gtest::GtestLoop
         if (pContext == NULL)
         {
             cout << "redis conn fail." << endl;
+            return -1;
         }
         else
         {
             redisFree(pContext);
+            return 0;
         }
     }
 };
@@ -53,14 +54,12 @@ void test_redis_conn()
 {
     int tm = 3;
     TestRedisConn test;
-
-    int count = Gtest::gtestLoopInMs(tm * 1000, &test);
-    cout << "speed " << count / 3 << " Tps" << endl;
+    test.loopFor(tm);
 }
 
 
 // #include "jstruct.h"
-#include "json/json2class.h"
+#include "json/j2c.h"
 
 // {
 //     "key0" : {
@@ -92,21 +91,21 @@ int32_t check_str(const char *val)
     return 0;
 }
 
-JSON_SEQ_ref(CA_CRT);
+JSON_SEQ_REF(CA_CRT);
 JSON_FIELD(caNum, jDouble, 1, NULL) // check_num)
 JSON_FIELD(ca1, jString, 1, NULL)   // check_str)
 JSON_FIELD(ca2, jString, 1, NULL)   // check_str)
 JSON_FIELD(ca3, jString, 1, NULL)   // check_str)
-JSON_SEQ_END_ref(CA_CRT);
+JSON_SEQ_END_REF(CA_CRT);
 
-JSON_SEQ_ref(SSL_CONF);
+JSON_SEQ_REF(SSL_CONF);
 JSON_FIELD(verify, jBool, 1, NULL)
 JSON_FIELD(listNum, jArray, 1, NULL)
 JSON_FIELD(listStr, jArray, 1, NULL)
 JSON_FIELD(CAs, CA_CRT, 1, NULL)
 JSON_FIELD(sign, jString, 1, NULL)
 JSON_FIELD(enc, jString, 1, NULL)
-JSON_SEQ_END_ref(SSL_CONF);
+JSON_SEQ_END_REF(SSL_CONF);
 
 const char *jSsl = "{"
                    "\"verify\":true,"
@@ -129,25 +128,25 @@ const char *jSsl = "{"
 
 int32_t ssl_conf(SSL_CONF *in, jNullPkt *out)
 {
-    printf("verify %d\n", in->verify->getBoolVal());
+    printf("verify %d\n", in->verify->val());
     auto pNum = in->listNum->getNumArray();
     for (size_t i = 0; i < pNum->size(); i++)
     {
-        printf("list num %d %ld [%lf]\n", pNum->size(), i, pNum->at(i)->getNumVal());
+        printf("list num %ld %ld [%lf]\n", pNum->size(), i, pNum->at(i)->getNumVal());
     }
 
     auto pStr = in->listStr->getStrArray();
     for (size_t i = 0; i < pStr->size(); i++)
     {
-        printf("list str %ld [%s]\n", i, pStr->at(i)->getStrVal());
+        printf("list str %ld [%s]\n", i, pStr->at(i)->str());
     }
 
     printf("ca num %lf\n", in->CAs->caNum->getNumVal());
-    printf("ca1 %s\n", in->CAs->ca1->getStrVal());
-    printf("ca2 %s\n", in->CAs->ca2->getStrVal());
-    printf("ca3 %s\n", in->CAs->ca3->getStrVal());
-    printf("sign %s\n", in->sign->getStrVal());
-    printf("enc %s\n", in->enc->getStrVal());
+    printf("ca1 %s\n", in->CAs->ca1->str());
+    printf("ca2 %s\n", in->CAs->ca2->str());
+    printf("ca3 %s\n", in->CAs->ca3->str());
+    printf("sign %s\n", in->sign->str());
+    printf("enc %s\n", in->enc->str());
 
     return 0;
 }
@@ -166,11 +165,11 @@ void test_json_proto()
     }
     cout << jreq.getString();
     cout << "======test moditify====\n";
-    jreq.enc->getStrVal();
+    jreq.enc->str();
     jreq.enc->ref("test");
-    jreq.verify->getBoolVal();
+    jreq.verify->val();
     jreq.verify->dup(false);
-    jreq.CAs->caNum->getNumPtr();
+    jreq.CAs->caNum->ptr();
     jreq.CAs->caNum->dup(1);
     jreq.listNum->getNumArray()->at(0)->dup(4);
     jreq.listStr->getStrArray()->at(0)->ref("xy");
@@ -303,11 +302,13 @@ void test_virtual1()
     {
     public:
         virtual void print() { printf("vir1\n"); }
+        virtual ~vir1() {}
     };
     class vir2 : public vir1
     {
     public:
         void print() { printf("vir2\n"); }
+        ~vir2() {}
     };
 
     vector<vir1*> vt;
@@ -318,19 +319,19 @@ void test_virtual1()
     p->print();
     delete p;
 }
-#include "cJSON.h"
 #include "json/yyjson.h"
 
-class testjson : public Gtest::GtestLoop
+class testjson : public GtestLoop
 {
 public:
-    void run(size_t id)
+    int  run(size_t id)
     {
         //410k
         SSL_CONF jReq;
         if(jReq.setString(jSsl))
         {
             printf("parse json fail.\n");
+            return -1;
         }
         string str = jReq.getString();
 
@@ -366,6 +367,8 @@ public:
         // ASSERT(pkt.addRespField("sign", "signCer"))
         // ASSERT(pkt.addRespField("enc", "encCer"))
         // pkt.toJsonStr();
+
+        return 0;
     }
 };
 
@@ -375,7 +378,7 @@ void test_jstruct_speed()
     testjson test;
     test.setThreadNum(6);
     test.setDataLength(sizeof(jSsl));
-    Gtest::gtestLoopInMs(tm * 1000, &test);
+    test.loopFor(tm);
 }
 
 class tString
@@ -409,10 +412,10 @@ tString alg_str()
 
 void test_return_str()
 {
-
     printf("1 [%s]\n", alg_str().cStr());
     const char *p = alg_str().cStr(); //错误用法
     printf("2 [%s]\n", p);
     tString str = alg_str();
     printf("3 [%s]\n", str.cStr());
+    printf("4 [%s]\n", str.cStr());
 }

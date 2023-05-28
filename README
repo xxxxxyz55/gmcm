@@ -9,7 +9,7 @@ make install
 redis           服务
 gmssl           库
 tarscpp/util    源码包含
-concurrentqueue 源码包含
+yyjson 源码包含
 
 
 目录结构:
@@ -17,6 +17,7 @@ concurrentqueue 源码包含
     ├──alg                 算法及软算法SOF接口库
     ├──build               在此构建
     ├──client              客户端sdk库
+    ├──encode              编码序列化库
     ├──external_include    外部依赖头文件
     ├──external_lib        外部依赖头文件
     ├──gtest               一些测试

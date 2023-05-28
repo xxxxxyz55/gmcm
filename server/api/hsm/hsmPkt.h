@@ -1,5 +1,5 @@
-#ifndef _GMCM_HSM_CLV_PKT_H_
-#define _GMCM_HSM_CLV_PKT_H_
+#ifndef _GMCM_HSM_PKT_H_
+#define _GMCM_HSM_PKT_H_
 #include "../../../encode/clv/clv_static.h"
 #include "../../alg/include/gmcmSdf.h"
 

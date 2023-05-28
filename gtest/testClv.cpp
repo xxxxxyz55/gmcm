@@ -3,6 +3,7 @@
 #include "clv/clv_static.h"
 #include <string.h>
 #include "utilFunc.h"
+#include <unordered_map>
 
 using namespace std;
 
@@ -19,6 +20,8 @@ void test_convert();
 // SPEED 1355918  Tps
 // SPEED 951 Mbps
 void test_jstruct_speed();
+void test_mpklv();
+void test_global_var();
 
 int main(int argc, char const *argv[])
 {
@@ -30,7 +33,8 @@ int main(int argc, char const *argv[])
     test.pushTest(test_memcpy, "test memcpy");
     test.pushTest(test_this, "test this");
     test.pushTest(test_convert, "test convert");
-    test.run();
+    test.pushTest(test_mpklv, "test mpklv");
+    test.pushTest(test_global_var, "test global var");
     return 0;
 }
 
@@ -71,15 +75,6 @@ typedef struct REQKEY_St
 uint8_t gBuf[8192];
 uint16_t gLen;
 
-int32_t write_gbuf(void *buf, size_t len)
-{
-    // utilTool::printHex((uint8_t *)buf, len, "data");
-
-    memcpy(gBuf + gLen, buf, len);
-    gLen += len;
-    return 0;
-}
-
 void test_clv_send()
 {
     reqKey req;
@@ -92,15 +87,10 @@ void test_clv_send()
     memset(gBuf, 0, gLen);
     gLen = 0;
     int cmd = 0x789;
-    int ret = req.send((uint8_t *)&cmd, write_gbuf);
-    if (ret)
-    {
-        printf("send fail ret = %d\n", ret);
-    }
-    else
-    {
-        utilTool::printHex(gBuf, gLen, "send");
-    }
+    string str = req.tostring((uint8_t *)&cmd);
+    memcpy(gBuf, str.c_str(), str.length());
+    gLen = str.length();
+    utilTool::printHex(gBuf, gLen, "send");
 }
 
 void test_clv_mapping()
@@ -119,44 +109,34 @@ void test_clv_mapping()
         utilTool::printHex(req.key.x.ptr(), req.key.x.len(), "x");
         utilTool::printHex(req.key.y.ptr(), req.key.y.len(), "x");
         utilTool::printHex((uint8_t *)req.sm4.ptr(), req.sm4.len(), "sm4");
-        ret = req.send(req.clvPktGetExt(gBuf), write_gbuf);
-        if(ret)
-        {
-            printf("send ret = %d\n", ret);
-        }
+        string str = req.tostring(req.clvPktGetExt(gBuf));
+        memcpy(gBuf, str.c_str(), str.length());
+        gLen = str.length();
     }
-    
 }
 
 uint8_t tBuf[16][256];
 uint16_t tLen[16];
 
-int32_t writeBuf(void *buf, size_t len, void *pid)
-{
-    size_t id = *(size_t *)pid;
-    memcpy(tBuf[id] + tLen[id], buf, len);
-    tLen[id] += len;
-    return 0;
-}
-
-class clv_run : public Gtest::GtestLoop
+class clv_run : public GtestLoop
 {
 public:
-    void run(size_t id)
+    int run(size_t id)
     {
         reqKey req;
         int ret = req.mapping(gBuf, gLen, true);
         if (ret)
         {
             printf("mappin ret = %d\n", ret);
+            return -1;
         }
         int ext = 0x9999;
         tLen[id] = 0;
-        ret = req.send_ex((uint8_t *)&ext, writeBuf, &id);
-        if (ret)
-        {
-            printf("send ret = %d\n", ret);
-        }
+        string str = req.tostring((uint8_t *)&ext);
+        memcpy(tBuf[id], str.c_str(), str.length());
+        tLen[id] = str.length();
+
+        return 0;
     }
 };
 
@@ -166,19 +146,20 @@ void test_clv_speed()
     clv_run clv;
     clv.setThreadNum(6);
     clv.setDataLength(96);
-    Gtest::gtestLoopInMs(5000, &clv);
+    clv.loopFor(5);
 }
 
-class clv_copy : public Gtest::GtestLoop
+class clv_copy : public GtestLoop
 {
 public:
-    void run(size_t id)
+    int run(size_t id)
     {
         REQKEY key;
         char *buf = new char[256];
         memcpy(buf, &key, sizeof(REQKEY));
         memcpy(&key, buf, sizeof(REQKEY));
         delete buf;
+        return 0;
     }
 };
 
@@ -187,7 +168,7 @@ void test_memcpy()
     clv_copy test;
     test.setThreadNum(6);
     test.setDataLength(sizeof(REQKEY));
-    Gtest::gtestLoopInMs(5000, &test);
+    test.loopFor(5);
 }
 
 void test_this()
@@ -274,24 +255,24 @@ void test_convert()
     delete p;
 }
 
-#include "../encode/json/json2class.h"
+#include "../encode/json/j2c.h"
 
-JSON_SEQ_ref(jtKey);
+JSON_SEQ_REF(jtKey);
 JSON_FIELD(bits, jDouble, 1, NULL);
 JSON_FIELD(x, jString, 1, NULL);
 JSON_FIELD(y, jString, 1, NULL);
-JSON_SEQ_END_ref(jtKey);
+JSON_SEQ_END_REF(jtKey);
 
-JSON_SEQ_ref(jSm4);
+JSON_SEQ_REF(jSm4);
 JSON_FIELD(id, jDouble, 1, NULL);
 JSON_FIELD(key, jString, 1, NULL);
-JSON_SEQ_END_ref(jSm4);
+JSON_SEQ_END_REF(jSm4);
 
-JSON_SEQ_ref(jReqKey);
+JSON_SEQ_REF(jReqKey);
 JSON_FIELD(alg, jDouble, 1, NULL);
 JSON_FIELD(key, jtKey, 1, NULL);
 JSON_FIELD(sm4, jSm4, 1, NULL);
-JSON_SEQ_END_ref(jReqKey);
+JSON_SEQ_END_REF(jReqKey);
 
 const char *jreqkey = "{"
                       "\"alg\":401,"
@@ -306,21 +287,23 @@ const char *jreqkey = "{"
                       "    }"
                       "}";
 
-class jstructSp : public Gtest::GtestLoop
+class jstructSp : public GtestLoop
 {
 private:
-    void run(size_t id)
+    int run(size_t id)
     {
         jReqKey req;
         int ret = req.setString(jreqkey);
         if (ret)
         {
             printf("set string ret = %d\n", ret);
+            return -1;
         }
         else
         {
             string json = req.getString();
             // cout << json << endl;
+            return 0;
         }
     }
 
@@ -333,5 +316,168 @@ void test_jstruct_speed()
     jstructSp clv;
     clv.setThreadNum(6);
     clv.setDataLength(sizeof(REQKEY));
-    Gtest::gtestLoopInMs(5000, &clv);
+    clv.loopFor(5);
+}
+class BLV
+{
+private:
+    void *_data;
+    uint16_t _len;
+    bool _alloc;
+
+public:
+    uint16_t length()
+    {
+        return _len;
+    }
+
+    void *data()
+    {
+        return _data;
+    }
+
+    template <typename T>
+    T *data()
+    {
+        return (T *)_data;
+    }
+
+    BLV(int32_t val)
+    {
+        printf("blv constructor int32_t \n");
+        _len = sizeof(int32_t);
+        _data = new char[_len];
+        _alloc = true;
+        *(int32_t *)_data = val;
+    }
+
+    BLV(int32_t *val)
+    {
+        printf("blv constructor int32_t *\n");
+        _len = sizeof(int32_t);
+        _data = val;
+        _alloc = false;
+    }
+
+    template <typename T>
+    BLV(T &val, uint16_t size = sizeof(T))
+    {
+        printf("blv constructor template\n");
+        _len = size;
+        _data = &val;
+        _alloc = false;
+    }
+
+    ~BLV()
+    {
+        printf("blv destructor\n");
+        if (_alloc)
+        {
+            delete[] (char *)_data;
+        }
+    }
+};
+
+void test_mpklv()
+{
+    unordered_map<string, BLV> req;
+    {
+        SM4_KEY sm4 = {777, {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88}};
+        TKEY key = {0x256, "12345689", "87654321"};
+        int alg = 0x123;
+        req.insert(make_pair("alg", &alg));
+        req.insert(make_pair("key", BLV(key)));
+        req.insert(make_pair("sm4", BLV(sm4)));
+    }
+
+    for (auto iter = req.begin(); iter != req.end(); iter++)
+    {
+        utilTool::printHex(iter->second.data<uint8_t>(), iter->second.length(), iter->first.c_str());
+    }
+
+    // req.at("sm4").data<SM4_KEY>()->id;
+}
+
+#include "verifyVar.h"
+
+int32_t check_alg(int32_t *alg)
+{
+    utilTool::printHex((uint8_t *)alg, 4, "alg");
+    return 0;
+}
+
+int32_t check_key(TKEY *key)
+{
+    utilTool::printHex((uint8_t *)key, sizeof(TKEY), "check key type 0");
+    return 0;
+}
+
+int32_t check_key_1(TKEY *key)
+{
+    utilTool::printHex((uint8_t *)key, sizeof(TKEY), "check key type 1");
+    return 0;
+}
+
+int32_t check_sm4(SM4_KEY *sm4)
+{
+    utilTool::printHex((uint8_t *)sm4, sizeof(TKEY), "sm4");
+    return 0;
+}
+
+int32_t check_datalen(uint32_t len)
+{
+    cout << "check data len.\n";
+    return 0;
+}
+
+int32_t check_index(uint32_t len)
+{
+    cout << "check index.\n";
+    return 0;
+}
+
+void test_global_var()
+{
+    REQKEY req = {
+        0x123,
+        {
+            0x456,
+            {0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38},
+            {0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38},
+        },
+        {
+            777,
+            {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
+        },
+    };
+
+    VerifyVar::verify(&req);
+    class TKEY1
+    {
+    public:
+        TKEY index;
+    };
+
+    TKEY key;
+    TKEY1 key1;
+    VerifyVar::verify(&key);
+    VerifyVar::RegisterVar<TKEY>({{offsetof(REQKEY, key), check_key}});
+    VerifyVar::RegisterVar<TKEY1>({{offsetof(REQKEY, key), check_key_1}});
+    VerifyVar::verify(&key);
+    VerifyVar::verify(&key1);
+
+    uint32_t dataLen;
+    uint32_t index;
+    class VERIFY_DATALEN
+    {
+    };
+
+    class VERIFY_INDEX
+    {
+    };
+    VerifyVar::RegisterVar<VERIFY_DATALEN>({{0, check_datalen}});
+    VerifyVar::RegisterVar<VERIFY_INDEX>({{0, check_index}});
+
+    VerifyVar::verify((VERIFY_DATALEN *)&dataLen);
+    VerifyVar::verify((VERIFY_INDEX *)&index);
 }

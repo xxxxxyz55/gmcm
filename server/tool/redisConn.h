@@ -1,19 +1,16 @@
 #ifndef _REDIS_CONN_H_
 #define _REDIS_CONN_H_
 
-// #include "concurrentqueue.h"
 #include "redis/hiredis.h"
 #include "util/tc_cas_queue.h"
 
 using namespace std;
-// using namespace moodycamel;
 using namespace tars;
 
 class redisConn
 {
 private:
     /* data */
-    // ConcurrentQueue<redisContext *> connQueue;
     TC_CasQueue<redisContext *> connQueue;
     redisConn(/* args */){};
     redisContext * newConn();

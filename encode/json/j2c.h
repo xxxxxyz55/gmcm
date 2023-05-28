@@ -8,6 +8,7 @@
 #include "yyjson.h"
 #include <vector>
 #include <memory>
+#include "utilFunc.h"
 
 #define JSON_ERR_ENCODE            1 //编码错误
 #define JSON_ERR_REQUIRED_PARAM    2 //缺少必须参数
@@ -28,6 +29,12 @@ typedef int32_t (*jCheckVoid)(const void *val);
 typedef int32_t (*jCheckStr)(const char *val);
 typedef int32_t (*jCheckNum)(const double *val);
 typedef int32_t (*jCheckBool)(const bool *val);
+
+typedef struct yyjson_mut_st
+{
+    yyjson_mut_val *pKey;
+    yyjson_mut_val *pVal;
+} yyjson_mut;
 
 class jHeader
 {
@@ -77,6 +84,7 @@ protected:
 
 class jString : public jHeader
 {
+private:
     jCheckStr _check;
     bool _allocFlag;
 
@@ -89,12 +97,12 @@ public:
     {
         if (_allocFlag)
         {
-            delete[] getStrVal();
+            delete[] str();
         }
     }
 
     int32_t getType() { return V_JSON_STR; }
-    const char *getStrVal() { return getVal<char>(); }
+    const char *str() { return getVal<char>(); }
 
 protected:
     void toString(size_t tabNum, std::ostringstream &jStream)
@@ -107,7 +115,7 @@ protected:
         {
             jStream << "\"" << getKey() << "\":";
         }
-        jStream << "\"" << getStrVal() << "\"";
+        jStream << "\"" << str() << "\"";
     }
 
     int32_t parseValue(yyjson_val *pVal)
@@ -121,7 +129,7 @@ protected:
         this->ref(pVal->uni.str);
         if (_check)
         {
-            return _check(getStrVal());
+            return _check(str());
         }
         return 0;
     }
@@ -151,9 +159,10 @@ public:
 
 class jDouble : public jHeader
 {
-public:
+private:
     jCheckNum _check;
     bool _allocFlag;
+public:
 
     jDouble(const char *key, bool isRequired, jCheckNum check) : jHeader(key, isRequired), _check(check), _allocFlag(false)
     {
@@ -162,13 +171,14 @@ public:
     {
         if (_allocFlag)
         {
-            delete getNumPtr();
+            delete ptr();
         }
     }
 
     int32_t getType() { return V_JSON_NUM; }
-    const double *getNumPtr() { return getVal<double>(); }
+    const double *ptr() { return getVal<double>(); }
     double getNumVal() { return *getVal<double>(); }
+    int32_t num() { return (int32_t)*getVal<double>(); }
 
 protected:
     void toString(size_t tabNum, std::ostringstream &jStream)
@@ -181,7 +191,7 @@ protected:
         {
             jStream << "\"" << getKey() << "\": ";
         }
-        jStream << *getNumPtr();
+        jStream << *ptr();
     }
 
     int32_t parseValue(yyjson_val *pVal)
@@ -213,7 +223,7 @@ protected:
 
         if(_check)
         {
-            return _check(getNumPtr());
+            return _check(ptr());
         }
         return 0;
     }
@@ -230,7 +240,7 @@ public:
     {
         if (_allocFlag)
         {
-            delete getNumPtr();
+            delete ptr();
             _allocFlag = false;
         }
 
@@ -243,10 +253,11 @@ public:
 
 class jBool : public jHeader
 {
-public:
+private:
     jCheckBool _check;
     bool _allocFlag;
 
+public:
     jBool(const char *key, bool isRequired, jCheckBool check) : jHeader(key, isRequired), _check(check), _allocFlag(false)
     {
     }
@@ -254,13 +265,13 @@ public:
     {
         if(_allocFlag)
         {
-            delete getBoolPtr();
+            delete ptr();
         }
     }
 
     int32_t getType() { return V_JSON_BOOL; }
-    const bool *getBoolPtr() { return getVal<bool>(); }
-    bool getBoolVal() { return *getBoolPtr(); }
+    const bool *ptr() { return getVal<bool>(); }
+    bool val() { return *ptr(); }
 
 protected:
     void toString(size_t tabNum, std::ostringstream &jStream)
@@ -274,7 +285,7 @@ protected:
         {
             jStream << "\"" << getKey() << "\": ";
         }
-        jStream << (*getBoolPtr() ? "true" : "false");
+        jStream << (*ptr() ? "true" : "false");
     }
 
     int32_t parseValue(yyjson_val *pVal)
@@ -288,7 +299,7 @@ protected:
         this->dup(unsafe_yyjson_get_bool(pVal));
         if (_check)
         {
-            return _check(getBoolPtr());
+            return _check(ptr());
         }
         return 0;
     }
@@ -305,7 +316,7 @@ public:
     {
         if (_allocFlag)
         {
-            delete getBoolPtr();
+            delete ptr();
             _allocFlag = false;
         }
 
@@ -677,17 +688,20 @@ private:
 };
 
 // using jObject::jObject;//报错
-#define JSON_SEQ_ref(type)                                                                     \
+#define JSON_SEQ_REF(type)                                                                     \
     class type : public jObject                                                                \
     {                                                                                          \
     private:                                                                                   \
-        size_t size() {return sizeof(type);}                                                   \
+        size_t size()                                                                          \
+        {                                                                                      \
+            return sizeof(type);                                                               \
+        }                                                                                      \
                                                                                                \
     public:                                                                                    \
         type(const char *key, bool isRequired, jCheckVoid check) : jObject(key, isRequired){}; \
         type() : jObject(NULL, false){};
 
-#define JSON_SEQ_END_ref(type)              \
+#define JSON_SEQ_END_REF(type)              \
     ~type()                                 \
     {                                       \
         size_t subNum = getSubNum();        \
@@ -766,6 +780,15 @@ public:
             return false;
         }
         return yyjson_mut_obj_add(_root, _key, _val);
+    }
+
+    bool addbase64Str(const char *key, unsigned char *str, unsigned int len)
+    {
+        char *b64Buf = new char[((len / 3) + 1) * 4];
+        base64::base64Encode(str, len, b64Buf);
+        bool ret = addRespField(key, b64Buf);
+        delete b64Buf;
+        return ret;
     }
 
     bool addRespField(const char *key, const char *val)
@@ -865,8 +888,8 @@ public:
     }
 };
 
-JSON_SEQ_ref(jNullPkt);
-JSON_SEQ_END_ref(jNullPkt);
+JSON_SEQ_REF(jNullPkt);
+JSON_SEQ_END_REF(jNullPkt);
 
 template <typename T, typename V>
 class jCtx
